@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
-  <title>Suah AI Auto Posting</title>
+  <title>Suah blog Posting</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap');
     
@@ -266,6 +266,21 @@
         padding: 1rem;
         max-height: 400px;
         font-size: 0.9rem;
+        word-break: break-word;
+        line-height: 1.6;
+      }
+      
+      #preview h2, #preview h3, #preview h4 {
+        word-break: keep-all;
+        word-wrap: break-word;
+        line-height: 1.4;
+        margin: 1rem 0 0.5rem 0;
+      }
+      
+      #preview p {
+        word-break: break-word;
+        line-height: 1.6;
+        margin-bottom: 1rem;
       }
       
       #preview h3 {
