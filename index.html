@@ -504,6 +504,7 @@ document.addEventListener('DOMContentLoaded', function() {
   <h1>${_post.title}</h1>
   <div class="meta-info">
     <p><strong>메타 설명:</strong> ${_post.meta_description}</p>
+    <p><strong>메인키워드:</strong> ${_post.mainKeyword}</p>
     <p><strong>키워드:</strong> ${_post.keywords.join(', ')}</p>
   </div>
   ${_post.imgUrl ? `<img src="${_post.imgUrl}" alt="${_post.title}">` : ''}
@@ -515,7 +516,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
   document.getElementById('downloadMarkdownBtn').onclick = () => {
     if (!_post) return alert('먼저 생성을 눌러주세요.');
-    const markdownContent = `# ${_post.title}\n\n**메타 설명:** ${_post.meta_description}\n\n**키워드:** ${_post.keywords.join(', ')}\n\n${_post.imgUrl ? `![${_post.title}](${_post.imgUrl})\n\n` : ''}${htmlToMarkdown(_post.content)}`;
+    const markdownContent = `# ${_post.title}\n\n**메타 설명:** ${_post.meta_description}\n\n**메인키워드:** ${_post.mainKeyword}\n\n**키워드:** ${_post.keywords.join(', ')}\n\n${_post.imgUrl ? `![${_post.title}](${_post.imgUrl})\n\n` : ''}${htmlToMarkdown(_post.content)}`;
     downloadFile(markdownContent, `${_post.title.replace(/[^a-zA-Z0-9가-힣]/g, '_')}.md`, 'text/markdown');
   };
 
@@ -555,32 +556,138 @@ document.addEventListener('DOMContentLoaded', function() {
   document.getElementById('searchBtn').onclick = async () => {
     const q = document.getElementById('query').value.trim(); if (!q) return alert('검색어를 입력하세요.');
     const ct = document.getElementById('articles'); ct.textContent = '⌛ 불러오는 중…';
-    const rssUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(q)}&hl=ko&gl=KR&ceid=KR:ko`;
-    let items = [];
+    
+    let allItems = [];
+    
+    // 1. 구글 뉴스 RSS에서 검색
+    const googleRssUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(q)}&hl=ko&gl=KR&ceid=KR:ko`;
     try {
-      const res = await fetchWithTimeout(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}`);
-      const j = await res.json(); if (j.status==='ok') items = j.items.map(it=>({ title: it.title, link: it.link, pubDate: it.pubDate })); else throw new Error();
+      const res = await fetchWithTimeout(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(googleRssUrl)}`);
+      const j = await res.json(); 
+      if (j.status==='ok') {
+        const googleItems = j.items.map(it=>({ 
+          title: it.title, 
+          link: it.link, 
+          pubDate: it.pubDate,
+          source: 'google',
+          score: 1 
+        }));
+        allItems = allItems.concat(googleItems);
+      }
     } catch {
-      const xml = await fetchText(rssUrl);
-      const doc = new DOMParser().parseFromString(xml,'application/xml');
-      items = Array.from(doc.querySelectorAll('item')).map(it=>({
-        title: it.querySelector('title')?.textContent||'',
-        link: it.querySelector('link')?.textContent||'',
-        pubDate: it.querySelector('pubDate')?.textContent||''
-      }));
+      try {
+        const xml = await fetchText(googleRssUrl);
+        const doc = new DOMParser().parseFromString(xml,'application/xml');
+        const googleItems = Array.from(doc.querySelectorAll('item')).map(it=>({
+          title: it.querySelector('title')?.textContent||'',
+          link: it.querySelector('link')?.textContent||'',
+          pubDate: it.querySelector('pubDate')?.textContent||'',
+          source: 'google',
+          score: 1
+        }));
+        allItems = allItems.concat(googleItems);
+      } catch(e) { console.warn('Google RSS failed', e); }
     }
-    _items = items; ct.innerHTML=''; 
+    
+    // 2. 네이버 랭킹 RSS에서 인기 기사 가져오기
+    const naverRankingUrls = [
+      'https://rss.news.naver.com/services/news/mainnews.xml', // 메인뉴스
+      'https://rss.news.naver.com/services/news/ranking/popular_day.xml' // 랭킹뉴스
+    ];
+    
+    for (const naverUrl of naverRankingUrls) {
+      try {
+        const xml = await fetchText(naverUrl);
+        const doc = new DOMParser().parseFromString(xml,'application/xml');
+        const naverItems = Array.from(doc.querySelectorAll('item')).map(it=>({
+          title: it.querySelector('title')?.textContent||'',
+          link: it.querySelector('link')?.textContent||'',
+          pubDate: it.querySelector('pubDate')?.textContent||'',
+          source: 'naver',
+          score: 3 // 네이버 랭킹은 높은 점수
+        })).filter(item => 
+          // 검색어와 관련된 기사만 필터링
+          item.title.toLowerCase().includes(q.toLowerCase()) ||
+          q.split(' ').some(keyword => item.title.toLowerCase().includes(keyword.toLowerCase()))
+        );
+        allItems = allItems.concat(naverItems);
+      } catch(e) { console.warn('Naver RSS failed', e); }
+    }
+    
+    // 3. 중복 제거 (비슷한 제목의 기사)
+    const uniqueItems = [];
+    for (const item of allItems) {
+      const isDuplicate = uniqueItems.some(existing => {
+        const similarity = getSimilarity(item.title, existing.title);
+        return similarity > 0.7; // 70% 이상 유사하면 중복으로 간주
+      });
+      if (!isDuplicate) {
+        uniqueItems.push(item);
+      }
+    }
+    
+    // 4. 점수 기반 정렬 (인기도 + 최신성)
+    uniqueItems.forEach(item => {
+      const timeScore = (Date.now() - new Date(item.pubDate)) / (1000 * 60 * 60); // 시간 점수
+      const keywordScore = countKeywords(item.title, q); // 키워드 매칭 점수
+      item.finalScore = item.score + keywordScore * 2 - timeScore * 0.1;
+    });
+    
+    _items = uniqueItems.sort((a,b) => b.finalScore - a.finalScore);
+    
+    ct.innerHTML=''; 
     const actionsEl = document.getElementById('actions');
     if (!_items.length) { 
       if (actionsEl) actionsEl.classList.add('hidden'); 
       return alert('관련 기사가 없습니다.'); 
     }
-    _items.sort((a,b)=>new Date(b.pubDate)-new Date(a.pubDate)); const cnt=Math.min(_items.length,30);
-    for(let i=0;i<cnt;i++){const it=_items[i],d=new Date(it.pubDate).toISOString().slice(0,16).replace('T',' ');
-      ct.insertAdjacentHTML('beforeend',`<div class="article-item"><input type="radio" name="art" id="a${i}" value="${i}"><label for="a${i}">${i+1}. ${it.title} [${d}]</label></div>`);
+    
+    const cnt=Math.min(_items.length,30);
+    for(let i=0;i<cnt;i++){
+      const it=_items[i];
+      const d=new Date(it.pubDate).toISOString().slice(0,16).replace('T',' ');
+      const sourceIcon = it.source === 'naver' ? '🔥' : '📰';
+      ct.insertAdjacentHTML('beforeend',`<div class="article-item"><input type="radio" name="art" id="a${i}" value="${i}"><label for="a${i}">${sourceIcon} ${i+1}. ${it.title} [${d}]</label></div>`);
     }
     if (actionsEl) actionsEl.classList.remove('hidden');
   };
+  
+  // 유사도 계산 함수
+  function getSimilarity(str1, str2) {
+    const longer = str1.length > str2.length ? str1 : str2;
+    const shorter = str1.length > str2.length ? str2 : str1;
+    if (longer.length === 0) return 1.0;
+    return (longer.length - editDistance(longer, shorter)) / longer.length;
+  }
+  
+  function editDistance(s1, s2) {
+    s1 = s1.toLowerCase();
+    s2 = s2.toLowerCase();
+    const costs = [];
+    for (let i = 0; i <= s2.length; i++) {
+      let lastValue = i;
+      for (let j = 0; j <= s1.length; j++) {
+        if (i === 0) costs[j] = j;
+        else if (j > 0) {
+          let newValue = costs[j - 1];
+          if (s1.charAt(j - 1) !== s2.charAt(i - 1)) newValue = Math.min(Math.min(newValue, lastValue), costs[j]) + 1;
+          costs[j - 1] = lastValue;
+          lastValue = newValue;
+        }
+      }
+      if (i > 0) costs[s1.length] = lastValue;
+    }
+    return costs[s1.length];
+  }
+  
+  // 키워드 매칭 점수 계산
+  function countKeywords(title, query) {
+    const keywords = query.toLowerCase().split(' ');
+    const titleLower = title.toLowerCase();
+    return keywords.reduce((score, keyword) => {
+      return score + (titleLower.includes(keyword) ? 1 : 0);
+    }, 0);
+  }
 
   document.getElementById('generateBtn').onclick = async () => {
     _post = null;
@@ -593,52 +700,79 @@ document.addEventListener('DOMContentLoaded', function() {
 
     try {
       const aiKey = localStorage.openai_key; if (!aiKey) throw new Error('OpenAI 키 필요');
-      const prompt = `당신은 SEO 전문가이자 블로그 콘텐츠 전문가입니다. 아래 가이드를 철저히 따라 사람이 직접 쓴 것 같은 자연스러운 블로그 글을 작성하세요.
-      
+      const prompt = `당신은 구글 SEO 전문가이자 한국의 인기 블로거입니다. Rank Math SEO 플러그인에서 100점을 받을 수 있는 완벽한 블로그 글을 작성하세요.
+
 응답을 JSON 객체로만 반환하세요 (title, meta_description, content, keywords, tags).
 
-## 핵심 작성 원칙
+## Rank Math SEO 최적화 요구사항
 
-### 자연스러운 문체
-- 기계적인 톤이 아닌 사람이 직접 쓴 듯한 어조 유지
-- 대화체와 격식체를 적절히 섞어 사용
-- "있잖아요", "그니까요", "뭐랄까", "솔직히 말하자면" 같은 구어체 자연스럽게 사용
-- 첫 번째 사람 시점(나, 우리)으로 글을 작성해 친근감 형성
-- 일상에서 많이 쓰이는 쉬운 단어 위주로 선택
+### 기본 SEO 설정
+- Focus Keyword: 메인 키워드 밀도 0.5-2.5% 유지
+- Title에 Focus Keyword 포함 (앞쪽 배치 선호)
+- Meta Description에 Focus Keyword 포함
+- URL에 Focus Keyword 포함 가능하도록 영문 슬러그 제안
 
-### 문장 구조의 다양성
-- 짧은 문장과 긴 문장을 불규칙하게 섞어서 작성
-- 간결한 문장으로 시작해서 중간에 복잡한 문장을 넣고 다시 간결하게 마무리
-- 가끔 문장을 중간에 끊고... 다시 시작하는 흐름 만들기
-- 한 문장으로만 이루어진 단락도 포함시키기
+### 콘텐츠 길이 및 구조
+- 최소 600단어 이상 (한글 기준 2,400자 이상)
+- H1 태그 1개 (제목)
+- H2 태그 3-6개 (주요 섹션)
+- H3 태그 적절히 활용
+- 각 H2 섹션마다 최소 150단어 이상
 
-### 감정 표현과 개인적 경험
-- "정말 짜증났어요", "솔직히 별로였어요" 같은 강한 주관적 표현 사용
-- "아마도", "제 생각에는", "확실하진 않지만" 같은 불확실성 표현 사용
-- 개인적인 경험이나 일화를 풍부하게 포함
-- 실패담이나 실수담도 포함하기 ("처음에는 완전히 망쳤어요")
+### Rank Math 체크리스트
+- Focus Keyword가 제목 앞쪽 60% 내에 위치
+- Focus Keyword가 메타 설명에 포함
+- Focus Keyword가 첫 번째 단락에 포함
+- Focus Keyword가 H2 태그 중 최소 1개에 포함
+- 이미지 Alt 텍스트에 Focus Keyword 포함
+- 내부 링크와 외부 링크 포함
+- Table of Contents (목차) 구조 제공
 
-### SEO 최적화 요소
-- 주요 키워드를 제목, 소제목, 첫 문단, 마지막 문단에 자연스럽게 배치
-- 키워드 밀도는 1.5~2.5% 사이로 유지
-- H2, H3 헤딩으로 체계적 구조화
-- 불릿 포인트와 번호 목록 적절히 활용
+### 키워드 최적화
+- 주요 키워드 밀도 1.5-2.5% 유지
+- LSI 키워드 (관련 키워드) 자연스럽게 포함
+- 키워드 변형과 동의어 활용
+- 키워드 스터핑 절대 금지
 
-### 필수 출력 구조
-1. title: 키워드를 포함한 SEO 최적화 제목 (60자 이내)
-2. meta_description: 클릭을 유도하는 메타 설명 (150자 이내)
-3. content: 위 가이드를 따라 4000자 이상의 HTML 형태 글 작성
-   - 개인적 경험과 감정이 담긴 자연스러운 어조
-   - 다양한 문장 길이와 단락 구성
-   - H2, H3 소제목으로 구조화
-   - 구어체와 격식체의 적절한 조합
-4. keywords: 주요 키워드 5-8개 배열
-5. tags: 관련 태그 5-10개 배열
+### 사람다운 글쓰기 스타일
+- "있잖아요", "그니까요", "솔직히 말하면" 등 자연스러운 구어체
+- 개인적 경험과 감정 표현 풍부하게 포함
+- 다양한 문장 길이와 단락 구성
+- 실패담, 성공담 등 진솔한 이야기
+
+### 사용자 경험 최적화
+- 스캔 가능한 구조 (불릿 포인트, 번호 목록)
+- 핵심 내용을 강조 표시
+- FAQ 섹션 포함
+- 요약 및 결론 제공
+
+### 수익화 CTA 및 외부링크 전략
+- 글 중간 3-4곳에 자연스러운 수익화 CTA 삽입
+- 관련 사이트로의 링크와 매력적인 버튼 문구 생성
+- "최저가 확인", "특가 혜택", "지금 바로" 등의 구매 유도 문구 사용
+- 파트너스 활동 고지 문구 포함
+
+### 외부링크 및 버튼 문구 예시
+- <a href="#" class="cta-button">지금 최저가 확인하기</a>
+- <a href="#" class="info-button">공식 사이트에서 자세히 보기</a>
+- <a href="#" class="review-button">실제 후기 더 보기</a>
+
+### 출력 구조
+1. title: Rank Math 최적화된 60자 이내 SEO 제목
+2. meta_description: Focus Keyword 포함 150자 이내 메타 설명
+3. content: 위 모든 조건을 만족하는 최소 5,000자 이상의 HTML 콘텐츠
+   - 목차 (Table of Contents) 구조 포함
+   - Focus Keyword가 첫 문단에 포함
+   - H2 태그 중 최소 1개에 Focus Keyword 포함
+   - 내부/외부 링크 포함
+   - FAQ 섹션 포함
+4. keywords: SEO 최적화된 주요 키워드 5-8개
+5. tags: 블로그 태그용 키워드 8-12개
 
 기사 제목: ${article.title}
 
-위 가이드를 철저히 따라 진짜 사람이 쓴 것 같은 매력적이고 SEO에 최적화된 블로그 글을 작성해주세요.`;
-      const resAI = await fetch('https://api.openai.com/v1/chat/completions',{ method:'POST', headers:{ 'Content-Type':'application/json', Authorization:`Bearer ${aiKey}` }, body: JSON.stringify({ model:'gpt-4o-mini', messages:[{ role:'system', content:'당신은 SEO 블로그 전문가입니다. JSON 형식으로만 응답하세요.' },{ role:'user', content:prompt }], temperature:0.7 }) });
+Rank Math SEO에서 100점을 받을 수 있도록 위 모든 조건을 철저히 지켜서 완벽한 SEO 블로그 글을 작성해주세요.`;
+      const resAI = await fetch('https://api.openai.com/v1/chat/completions',{ method:'POST', headers:{ 'Content-Type':'application/json', Authorization:`Bearer ${aiKey}` }, body: JSON.stringify({ model:'gpt-4o-mini', messages:[{ role:'system', content:'당신은 Rank Math SEO 전문가입니다. Rank Math에서 100점을 받는 완벽한 SEO 최적화 글을 작성하여 JSON만 반환하세요.' },{ role:'user', content:prompt }], temperature:0.7, max_tokens:4000 }) });
       if (!resAI.ok) throw new Error(`OpenAI 오류: ${resAI.status}`);
       let raw = (await resAI.json()).choices[0].message.content.trim(); raw = raw.replace(/^```(?:json)?/,'').replace(/```$/,'').trim();
       let data;
@@ -673,27 +807,7 @@ document.addEventListener('DOMContentLoaded', function() {
   };
 
   publishBtn.onclick = async () => {
-    if (!_post) return alert('먼저 생성을 눌러주세요.');
-    const { title, content, tags, imgUrl } = _post;
-    const creds = btoa(`${localStorage.wp_user}:${localStorage.wp_pass}`);
-    try {
-      const tagIds = await Promise.all(tags.map(async t => { let r = await fetch(`${localStorage.wp_site}/wp-json/wp/v2/tags?search=${encodeURIComponent(t)}&per_page=1`,{ headers:{ Authorization:'Basic '+creds } }); let arr = await r.json(), id = arr[0]?.id; if (!id) { r = await fetch(`${localStorage.wp_site}/wp-json/wp/v2/tags`,{ method:'POST', headers:{ 'Content-Type':'application/json', Authorization:'Basic '+creds }, body: JSON.stringify({ name:t }) }); id = (await r.json()).id; } return id; }));
-      let postContent = content;
-      if (imgUrl) {
-        const blob = await fetch(imgUrl).then(r=>r.blob());
-        const fd = new FormData(); fd.append('file', blob, 'img.jpg'); fd.append('alt_text', title);
-        const mr = await fetch(`${localStorage.wp_site}/wp-json/wp/v2/media`,{ method:'POST', headers:{ Authorization:'Basic '+creds }, body: fd });
-        const mediaId = (await mr.json()).id;
-        postContent = `<p><img src="${imgUrl}"/></p>${content}`;
-        await fetch(`${localStorage.wp_site}/wp-json/wp/v2/posts`,{ method:'POST', headers:{ 'Content-Type':'application/json', Authorization:'Basic '+creds }, body: JSON.stringify({ title, content: postContent, status:'publish', tags: tagIds, featured_media: mediaId }) });
-      } else {
-        await fetch(`${localStorage.wp_site}/wp-json/wp/v2/posts`,{ method:'POST', headers:{ 'Content-Type':'application/json', Authorization:'Basic '+creds }, body: JSON.stringify({ title, content, status:'publish', tags: tagIds }) });
-      }
-      alert('🎉 발행 완료');
-    } catch (e) {
-      console.error(e);
-      alert('발행 실패: ' + e.message);
-    }
+    alert('⚠️ 이 기능은 제거되었습니다. 생성된 콘텐츠를 복사해서 수동으로 블로그에 올려주세요.');
   };
 });
 </script>
