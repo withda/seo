@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
-  <title>AI Auto Posting</title>
+  <title>Suah AI Auto Posting</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap');
     
@@ -12,7 +12,7 @@
       font-family: 'Poppins', sans-serif; 
       max-width: 900px; 
       margin: 0 auto; 
-      padding: 2em;
+      padding: 1rem;
       background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 50%, #fecfef 100%);
       min-height: 100vh;
       color: #2d3748;
@@ -22,25 +22,26 @@
       text-align: center; 
       color: #e53e3e;
       font-weight: 700;
-      font-size: 2.5rem;
+      font-size: 2rem;
       text-shadow: 2px 2px 4px rgba(255,255,255,0.8);
       margin-bottom: 1.5rem;
+      line-height: 1.2;
     }
     
     h2 {
       color: #d53f8c;
       font-weight: 600;
       margin-bottom: 1rem;
-      font-size: 1.3rem;
+      font-size: 1.2rem;
     }
     
     .section { 
       background: rgba(255,255,255,0.95);
       backdrop-filter: blur(10px);
       border: none;
-      padding: 2rem; 
-      margin-bottom: 1.5rem; 
-      border-radius: 20px; 
+      padding: 1.5rem; 
+      margin-bottom: 1rem; 
+      border-radius: 15px; 
       box-shadow: 0 8px 32px rgba(255,182,193,0.3);
       border: 1px solid rgba(255,255,255,0.2);
     }
@@ -74,11 +75,16 @@
       cursor: pointer;
       transition: all 0.3s ease;
       font-size: 1rem;
+      width: 100%;
     }
     
     .section button:hover {
       transform: translateY(-3px);
       box-shadow: 0 10px 25px rgba(229,62,62,0.3);
+    }
+    
+    .section button:active {
+      transform: translateY(0);
     }
     
     .section button:disabled {
@@ -89,25 +95,25 @@
     }
     
     .helper { 
-      font-size: 0.9rem; 
+      font-size: 0.85rem; 
       color: #718096; 
       margin-top: .5rem;
       line-height: 1.5;
     }
     
     #articles { 
-      max-height: 350px; 
+      max-height: 300px; 
       overflow-y: auto; 
       border: 2px solid #fbb6ce; 
       padding: 1rem; 
-      font-size: .95rem;
+      font-size: .9rem;
       border-radius: 12px;
       background: rgba(255,255,255,0.8);
     }
     
     .article-item { 
       display: flex; 
-      align-items: center; 
+      align-items: flex-start; 
       margin-bottom: .8rem;
       padding: 8px;
       border-radius: 8px;
@@ -119,27 +125,28 @@
     }
     
     .article-item input[type="radio"] { 
-      width: auto; 
       margin-right: .8rem;
+      margin-top: 2px;
       accent-color: #e53e3e;
+      flex-shrink: 0;
     }
     
     .article-item label { 
       flex: 1; 
-      white-space: nowrap; 
-      overflow: hidden; 
-      text-overflow: ellipsis;
       cursor: pointer;
       font-weight: 400;
+      line-height: 1.4;
+      word-break: break-word;
     }
     
     #preview { 
-      overflow: visible;
+      overflow-y: auto;
       background: rgba(255,255,255,0.9);
       padding: 1.5rem;
       border-radius: 12px;
       margin-top: 1rem;
       border: 2px solid #fbb6ce;
+      max-height: 500px;
     }
     
     #preview img { 
@@ -156,14 +163,29 @@
       color: #d53f8c;
       margin-bottom: 1rem;
       font-weight: 600;
+      font-size: 1.3rem;
+      line-height: 1.3;
     }
     
     .hidden { display: none; }
+    
+    .export-btn {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+      font-size: 0.9rem !important;
+      padding: 10px 16px !important;
+      margin: 0 !important;
+    }
+    
+    .export-btn:hover {
+      background: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%) !important;
+      transform: translateY(-2px);
+    }
     
     #publishBtn {
       background: linear-gradient(135deg, #38a169 0%, #48bb78 100%) !important;
       font-size: 1.1rem !important;
       padding: 15px 30px !important;
+      margin-top: 1rem !important;
     }
     
     #publishBtn:hover {
@@ -172,26 +194,127 @@
     
     /* 스크롤바 스타일링 */
     #articles::-webkit-scrollbar, #preview::-webkit-scrollbar {
-      width: 8px;
+      width: 6px;
     }
     
     #articles::-webkit-scrollbar-track, #preview::-webkit-scrollbar-track {
       background: rgba(255,182,193,0.2);
-      border-radius: 4px;
+      border-radius: 3px;
     }
     
     #articles::-webkit-scrollbar-thumb, #preview::-webkit-scrollbar-thumb {
       background: #fbb6ce;
-      border-radius: 4px;
+      border-radius: 3px;
     }
     
     #articles::-webkit-scrollbar-thumb:hover, #preview::-webkit-scrollbar-thumb:hover {
       background: #e53e3e;
     }
+
+    /* 모바일 반응형 디자인 */
+    @media (max-width: 768px) {
+      body {
+        padding: 0.5rem;
+      }
+      
+      h1 {
+        font-size: 1.8rem;
+        margin-bottom: 1rem;
+      }
+      
+      h2 {
+        font-size: 1.1rem;
+      }
+      
+      .section {
+        padding: 1rem;
+        margin-bottom: 0.8rem;
+        border-radius: 12px;
+      }
+      
+      .section input[type="text"], .section input[type="password"] {
+        padding: 10px 12px;
+        font-size: 16px; /* iOS 줌 방지 */
+      }
+      
+      .section button {
+        padding: 14px 20px;
+        font-size: 1rem;
+        margin-top: 0.8rem;
+      }
+      
+      .helper {
+        font-size: 0.8rem;
+      }
+      
+      #articles {
+        max-height: 250px;
+        padding: 0.8rem;
+        font-size: 0.85rem;
+      }
+      
+      .article-item {
+        padding: 6px;
+        margin-bottom: 0.6rem;
+      }
+      
+      .article-item label {
+        font-size: 0.85rem;
+      }
+      
+      #preview {
+        padding: 1rem;
+        max-height: 400px;
+        font-size: 0.9rem;
+      }
+      
+      #preview h3 {
+        font-size: 1.1rem;
+      }
+      
+      #publishBtn {
+        font-size: 1rem !important;
+        padding: 14px 24px !important;
+      }
+      
+      /* 스크롤바 모바일에서 더 얇게 */
+      #articles::-webkit-scrollbar, #preview::-webkit-scrollbar {
+        width: 4px;
+      }
+    }
+
+    /* 아주 작은 화면 (380px 이하) */
+    @media (max-width: 380px) {
+      body {
+        padding: 0.3rem;
+      }
+      
+      h1 {
+        font-size: 1.5rem;
+      }
+      
+      .section {
+        padding: 0.8rem;
+      }
+      
+      .section input[type="text"], .section input[type="password"] {
+        padding: 8px 10px;
+      }
+      
+      #articles {
+        max-height: 200px;
+        padding: 0.6rem;
+      }
+      
+      #preview {
+        padding: 0.8rem;
+        max-height: 350px;
+      }
+    }
   </style>
 </head>
 <body>
-  <h1>📰 AI Auto Posting(WordPress)</h1>
+  <h1>📰 Suah AI Auto Posting(WordPress)</h1>
 
   <div class="section">
     <h2>① WordPress API 정보</h2>
@@ -220,18 +343,34 @@
     <h2>생성 & 미리보기</h2>
     <button id="generateBtn">생성</button>
     <div id="preview"></div>
+    
+    <!-- 저장/복사 옵션 -->
+    <div id="exportOptions" class="hidden" style="margin-top: 1rem;">
+      <h3 style="color: #d53f8c; font-size: 1.1rem; margin-bottom: 1rem;">📋 내보내기 옵션</h3>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0.8rem; margin-bottom: 1rem;">
+        <button id="copyHtmlBtn" class="export-btn">📄 HTML 복사</button>
+        <button id="copyMarkdownBtn" class="export-btn">📝 Markdown 복사</button>
+        <button id="downloadHtmlBtn" class="export-btn">💾 HTML 저장</button>
+        <button id="downloadMarkdownBtn" class="export-btn">💾 MD 저장</button>
+        <button id="captureBtn" class="export-btn">📸 이미지 저장</button>
+      </div>
+    </div>
+    
     <button id="publishBtn" disabled>🚀 WP 발행</button>
   </div>
 
 <script>
+document.addEventListener('DOMContentLoaded', function() {
   ['wp_site','wp_user','wp_pass','openai_key','pexels_key'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.value = localStorage[id] || '';
   });
+  
   document.getElementById('saveWpBtn').onclick = () => {
     ['wp_site','wp_user','wp_pass'].forEach(id => localStorage[id] = document.getElementById(id).value.trim());
     alert('✅ 워드프레스 정보 저장');
   };
+  
   document.getElementById('saveKeysBtn').onclick = () => {
     ['openai_key','pexels_key'].forEach(id => localStorage[id] = document.getElementById(id).value.trim());
     alert('✅ API 키 저장');
@@ -241,11 +380,13 @@
     const controller = new AbortController(), timeout = setTimeout(() => controller.abort(), ms);
     return fetch(url, {...opts, signal: controller.signal}).finally(() => clearTimeout(timeout));
   }
+  
   const PROXIES = [
     u => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`,
     u => `https://thingproxy.freeboard.io/fetch/${u}`,
     u => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`
   ];
+  
   async function fetchText(url) {
     for (const fn of PROXIES) {
       try {
@@ -264,6 +405,138 @@
   let _items = [], _post = null;
   const publishBtn = document.getElementById('publishBtn');
 
+  // 유틸리티 함수들
+  function htmlToMarkdown(html) {
+    return html
+      .replace(/<h([1-6])>(.*?)<\/h[1-6]>/gi, (match, level, text) => '#'.repeat(parseInt(level)) + ' ' + text + '\n\n')
+      .replace(/<p>(.*?)<\/p>/gi, '$1\n\n')
+      .replace(/<br\s*\/?>/gi, '\n')
+      .replace(/<strong>(.*?)<\/strong>/gi, '**$1**')
+      .replace(/<b>(.*?)<\/b>/gi, '**$1**')
+      .replace(/<em>(.*?)<\/em>/gi, '*$1*')
+      .replace(/<i>(.*?)<\/i>/gi, '*$1*')
+      .replace(/<a href="(.*?)".*?>(.*?)<\/a>/gi, '[$2]($1)')
+      .replace(/<img[^>]*src="([^"]*)"[^>]*alt="([^"]*)"[^>]*>/gi, '![${2}]($1)')
+      .replace(/<img[^>]*src="([^"]*)"[^>]*>/gi, '![]($1)')
+      .replace(/<ul>/gi, '').replace(/<\/ul>/gi, '\n')
+      .replace(/<ol>/gi, '').replace(/<\/ol>/gi, '\n')
+      .replace(/<li>(.*?)<\/li>/gi, '- $1\n')
+      .replace(/<[^>]*>/g, '')
+      .replace(/\n\s*\n\s*\n/g, '\n\n')
+      .trim();
+  }
+
+  function downloadFile(content, filename, type) {
+    const blob = new Blob([content], { type });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  async function copyToClipboard(text) {
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch (err) {
+      const textarea = document.createElement('textarea');
+      textarea.value = text;
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
+      return true;
+    }
+  }
+
+  // 내보내기 버튼 이벤트들
+  document.getElementById('copyHtmlBtn').onclick = async () => {
+    if (!_post) return alert('먼저 생성을 눌러주세요.');
+    const htmlContent = `<h1>${_post.title}</h1>\n<p><strong>메타 설명:</strong> ${_post.meta_description}</p>\n<p><strong>키워드:</strong> ${_post.keywords.join(', ')}</p>\n${_post.imgUrl ? `<img src="${_post.imgUrl}" alt="${_post.title}" style="width: 100%; height: auto;">` : ''}\n${_post.content}`;
+    await copyToClipboard(htmlContent);
+    alert('✅ HTML이 클립보드에 복사되었습니다!');
+  };
+
+  document.getElementById('copyMarkdownBtn').onclick = async () => {
+    if (!_post) return alert('먼저 생성을 눌러주세요.');
+    const markdownContent = `# ${_post.title}\n\n**메타 설명:** ${_post.meta_description}\n\n**키워드:** ${_post.keywords.join(', ')}\n\n${_post.imgUrl ? `![${_post.title}](${_post.imgUrl})\n\n` : ''}${htmlToMarkdown(_post.content)}`;
+    await copyToClipboard(markdownContent);
+    alert('✅ Markdown이 클립보드에 복사되었습니다!');
+  };
+
+  document.getElementById('downloadHtmlBtn').onclick = () => {
+    if (!_post) return alert('먼저 생성을 눌러주세요.');
+    const htmlContent = `<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="${_post.meta_description}">
+  <meta name="keywords" content="${_post.keywords.join(', ')}">
+  <title>${_post.title}</title>
+  <style>
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 800px; margin: 0 auto; padding: 2rem; line-height: 1.6; }
+    h1 { color: #2d3748; border-bottom: 3px solid #e53e3e; padding-bottom: 0.5rem; }
+    img { width: 100%; height: auto; border-radius: 8px; margin: 1rem 0; }
+    .meta-info { background: #fbb6ce; padding: 0.5rem 1rem; border-radius: 8px; margin: 1rem 0; }
+  </style>
+</head>
+<body>
+  <h1>${_post.title}</h1>
+  <div class="meta-info">
+    <p><strong>메타 설명:</strong> ${_post.meta_description}</p>
+    <p><strong>키워드:</strong> ${_post.keywords.join(', ')}</p>
+  </div>
+  ${_post.imgUrl ? `<img src="${_post.imgUrl}" alt="${_post.title}">` : ''}
+  ${_post.content}
+</body>
+</html>`;
+    downloadFile(htmlContent, `${_post.title.replace(/[^a-zA-Z0-9가-힣]/g, '_')}.html`, 'text/html');
+  };
+
+  document.getElementById('downloadMarkdownBtn').onclick = () => {
+    if (!_post) return alert('먼저 생성을 눌러주세요.');
+    const markdownContent = `# ${_post.title}\n\n**메타 설명:** ${_post.meta_description}\n\n**키워드:** ${_post.keywords.join(', ')}\n\n${_post.imgUrl ? `![${_post.title}](${_post.imgUrl})\n\n` : ''}${htmlToMarkdown(_post.content)}`;
+    downloadFile(markdownContent, `${_post.title.replace(/[^a-zA-Z0-9가-힣]/g, '_')}.md`, 'text/markdown');
+  };
+
+  document.getElementById('captureBtn').onclick = async () => {
+    if (!_post) return alert('먼저 생성을 눌러주세요.');
+    try {
+      if (!window.html2canvas) {
+        const script = document.createElement('script');
+        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+        document.head.appendChild(script);
+        await new Promise(resolve => script.onload = resolve);
+      }
+      
+      const preview = document.getElementById('preview');
+      const canvas = await html2canvas(preview, {
+        backgroundColor: '#ffffff',
+        scale: 2,
+        useCORS: true
+      });
+      
+      canvas.toBlob(blob => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${_post.title.replace(/[^a-zA-Z0-9가-힣]/g, '_')}.png`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      });
+      
+    } catch (err) {
+      alert('❌ 이미지 저장에 실패했습니다. 브라우저에서 스크린샷을 찍어주세요.');
+    }
+  };
+
   document.getElementById('searchBtn').onclick = async () => {
     const q = document.getElementById('query').value.trim(); if (!q) return alert('검색어를 입력하세요.');
     const ct = document.getElementById('articles'); ct.textContent = '⌛ 불러오는 중…';
@@ -281,12 +554,17 @@
         pubDate: it.querySelector('pubDate')?.textContent||''
       }));
     }
-    _items = items; ct.innerHTML=''; if (!_items.length) { document.getElementById('actions').classList.add('hidden'); return alert('관련 기사가 없습니다.'); }
+    _items = items; ct.innerHTML=''; 
+    const actionsEl = document.getElementById('actions');
+    if (!_items.length) { 
+      if (actionsEl) actionsEl.classList.add('hidden'); 
+      return alert('관련 기사가 없습니다.'); 
+    }
     _items.sort((a,b)=>new Date(b.pubDate)-new Date(a.pubDate)); const cnt=Math.min(_items.length,30);
     for(let i=0;i<cnt;i++){const it=_items[i],d=new Date(it.pubDate).toISOString().slice(0,16).replace('T',' ');
       ct.insertAdjacentHTML('beforeend',`<div class="article-item"><input type="radio" name="art" id="a${i}" value="${i}"><label for="a${i}">${i+1}. ${it.title} [${d}]</label></div>`);
     }
-    document.getElementById('actions').classList.remove('hidden');
+    if (actionsEl) actionsEl.classList.remove('hidden');
   };
 
   document.getElementById('generateBtn').onclick = async () => {
@@ -300,14 +578,65 @@
 
     try {
       const aiKey = localStorage.openai_key; if (!aiKey) throw new Error('OpenAI 키 필요');
-      const prompt = `응답을 JSON 객체로만 반환하세요 (title, content, keywords). title은 기사 제목의 핵심 키워드를 조합하여 SEO 최적화된 새 제목으로 작성하세요.\ncontent는 HTML 형태로 3000자 이상 작성하세요.\n기사 제목: ${article.title}`;
+      const prompt = `당신은 SEO 전문가이자 블로그 콘텐츠 전문가입니다. 아래 가이드를 철저히 따라 사람이 직접 쓴 것 같은 자연스러운 블로그 글을 작성하세요.
+      
+응답을 JSON 객체로만 반환하세요 (title, meta_description, content, keywords, tags).
+
+## 핵심 작성 원칙
+
+### 자연스러운 문체
+- 기계적인 톤이 아닌 사람이 직접 쓴 듯한 어조 유지
+- 대화체와 격식체를 적절히 섞어 사용
+- "있잖아요", "그니까요", "뭐랄까", "솔직히 말하자면" 같은 구어체 자연스럽게 사용
+- 첫 번째 사람 시점(나, 우리)으로 글을 작성해 친근감 형성
+- 일상에서 많이 쓰이는 쉬운 단어 위주로 선택
+
+### 문장 구조의 다양성
+- 짧은 문장과 긴 문장을 불규칙하게 섞어서 작성
+- 간결한 문장으로 시작해서 중간에 복잡한 문장을 넣고 다시 간결하게 마무리
+- 가끔 문장을 중간에 끊고... 다시 시작하는 흐름 만들기
+- 한 문장으로만 이루어진 단락도 포함시키기
+
+### 감정 표현과 개인적 경험
+- "정말 짜증났어요", "솔직히 별로였어요" 같은 강한 주관적 표현 사용
+- "아마도", "제 생각에는", "확실하진 않지만" 같은 불확실성 표현 사용
+- 개인적인 경험이나 일화를 풍부하게 포함
+- 실패담이나 실수담도 포함하기 ("처음에는 완전히 망쳤어요")
+
+### SEO 최적화 요소
+- 주요 키워드를 제목, 소제목, 첫 문단, 마지막 문단에 자연스럽게 배치
+- 키워드 밀도는 1.5~2.5% 사이로 유지
+- H2, H3 헤딩으로 체계적 구조화
+- 불릿 포인트와 번호 목록 적절히 활용
+
+### 필수 출력 구조
+1. title: 키워드를 포함한 SEO 최적화 제목 (60자 이내)
+2. meta_description: 클릭을 유도하는 메타 설명 (150자 이내)
+3. content: 위 가이드를 따라 4000자 이상의 HTML 형태 글 작성
+   - 개인적 경험과 감정이 담긴 자연스러운 어조
+   - 다양한 문장 길이와 단락 구성
+   - H2, H3 소제목으로 구조화
+   - 구어체와 격식체의 적절한 조합
+4. keywords: 주요 키워드 5-8개 배열
+5. tags: 관련 태그 5-10개 배열
+
+기사 제목: ${article.title}
+
+위 가이드를 철저히 따라 진짜 사람이 쓴 것 같은 매력적이고 SEO에 최적화된 블로그 글을 작성해주세요.`;
       const resAI = await fetch('https://api.openai.com/v1/chat/completions',{ method:'POST', headers:{ 'Content-Type':'application/json', Authorization:`Bearer ${aiKey}` }, body: JSON.stringify({ model:'gpt-4o-mini', messages:[{ role:'system', content:'당신은 SEO 블로그 전문가입니다. JSON 형식으로만 응답하세요.' },{ role:'user', content:prompt }], temperature:0.7 }) });
       if (!resAI.ok) throw new Error(`OpenAI 오류: ${resAI.status}`);
       let raw = (await resAI.json()).choices[0].message.content.trim(); raw = raw.replace(/^```(?:json)?/,'').replace(/```$/,'').trim();
       let data;
       try { data = JSON.parse(raw); } catch (pe) { console.error('Parsing error:', raw); throw new Error('JSON 파싱 실패: '+pe.message); }
-      // keywords를 배열로 강제 변환
+      // 구조 검증 및 기본값 설정
+      if (!data.title) throw new Error('제목이 생성되지 않았습니다');
+      if (!data.content) throw new Error('내용이 생성되지 않았습니다');
+      if (!data.keywords) data.keywords = [];
+      if (!data.tags) data.tags = data.keywords || [];
+      if (!data.meta_description) data.meta_description = data.content.replace(/<[^>]*>/g, '').slice(0, 150) + '...';
+      // keywords와 tags를 배열로 강제 변환
       if (!Array.isArray(data.keywords)) data.keywords = [data.keywords];
+      if (!Array.isArray(data.tags)) data.tags = [data.tags];
 
       const cleanContent = data.content.replace(/<img[^>]*>/gi,'');
       const engTitle = await translateToEnglish(article.title);
@@ -317,10 +646,11 @@
       if (!photos || photos.length === 0) { const fb = await fetch(`https://api.pexels.com/v1/curated?per_page=1`,{ headers:{ Authorization: localStorage.pexels_key } }); photos = (await fb.json()).photos; }
       const imgUrl = photos.length>0 ? photos[0].src.large2x : '';
       const imgHtml = imgUrl ? `<img src="${imgUrl}" alt="대표 이미지">` : `<p style="color:gray;">대표 이미지 없음</p>`;
-      const snippet = cleanContent.slice(0,300) + (cleanContent.length>300?'...':'');
-      pv.innerHTML = `<h3>${data.title}</h3><p><strong>키워드:</strong> ${data.keywords.join(', ')}</p><div>${imgHtml}${snippet}</div>`;
-      _post = { title: data.title, content: cleanContent, tags: data.keywords, imgUrl };
+      pv.innerHTML = `<h3>${data.title}</h3><p><strong>메타 설명:</strong> ${data.meta_description}</p><p><strong>키워드:</strong> ${data.keywords.join(', ')}</p><div>${imgHtml}<div style="margin-top: 1rem;">${cleanContent}</div></div>`;
+      _post = { title: data.title, content: cleanContent, tags: data.tags, keywords: data.keywords, meta_description: data.meta_description, imgUrl };
       publishBtn.disabled = false;
+      const exportOptions = document.getElementById('exportOptions');
+      if (exportOptions) exportOptions.classList.remove('hidden');
     } catch (err) {
       console.error(err);
       pv.innerHTML = `<p style="color:red;">❌ ${err.message}</p>`;
@@ -350,6 +680,7 @@
       alert('발행 실패: ' + e.message);
     }
   };
+});
 </script>
 </body>
 </html>
