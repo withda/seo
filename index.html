@@ -292,7 +292,8 @@
   document.getElementById('generateBtn').onclick = async () => {
     _post = null;
     publishBtn.disabled = true;
-    document.getElementById('exportOptions').classList.add('hidden');
+    const exportOptions = document.getElementById('exportOptions');
+    if (exportOptions) exportOptions.classList.add('hidden');
     const sel = document.querySelector("input[name='art']:checked"); if (!sel) return alert('기사 선택 필요');
     const article = _items[+sel.value];
     const pv = document.getElementById('preview'); pv.innerHTML = '생성 중…';
