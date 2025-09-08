@@ -171,21 +171,21 @@
     }
     
     /* 스크롤바 스타일링 */
-    #articles::-webkit-scrollbar {
+    #articles::-webkit-scrollbar, #preview::-webkit-scrollbar {
       width: 8px;
     }
     
-    #articles::-webkit-scrollbar-track {
+    #articles::-webkit-scrollbar-track, #preview::-webkit-scrollbar-track {
       background: rgba(255,182,193,0.2);
       border-radius: 4px;
     }
     
-    #articles::-webkit-scrollbar-thumb {
+    #articles::-webkit-scrollbar-thumb, #preview::-webkit-scrollbar-thumb {
       background: #fbb6ce;
       border-radius: 4px;
     }
     
-    #articles::-webkit-scrollbar-thumb:hover {
+    #articles::-webkit-scrollbar-thumb:hover, #preview::-webkit-scrollbar-thumb:hover {
       background: #e53e3e;
     }
   </style>
@@ -292,6 +292,7 @@
   document.getElementById('generateBtn').onclick = async () => {
     _post = null;
     publishBtn.disabled = true;
+    document.getElementById('exportOptions').classList.add('hidden');
     const sel = document.querySelector("input[name='art']:checked"); if (!sel) return alert('기사 선택 필요');
     const article = _items[+sel.value];
     const pv = document.getElementById('preview'); pv.innerHTML = '생성 중…';
