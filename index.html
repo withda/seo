@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>AI Auto Posting</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap');
+    
+    * { box-sizing: border-box; }
+    
+    body { 
+      font-family: 'Poppins', sans-serif; 
+      max-width: 900px; 
+      margin: 0 auto; 
+      padding: 2em;
+      background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 50%, #fecfef 100%);
+      min-height: 100vh;
+      color: #2d3748;
+    }
+    
+    h1 { 
+      text-align: center; 
+      color: #e53e3e;
+      font-weight: 700;
+      font-size: 2.5rem;
+      text-shadow: 2px 2px 4px rgba(255,255,255,0.8);
+      margin-bottom: 1.5rem;
+    }
+    
+    h2 {
+      color: #d53f8c;
+      font-weight: 600;
+      margin-bottom: 1rem;
+      font-size: 1.3rem;
+    }
+    
+    .section { 
+      background: rgba(255,255,255,0.95);
+      backdrop-filter: blur(10px);
+      border: none;
+      padding: 2rem; 
+      margin-bottom: 1.5rem; 
+      border-radius: 20px; 
+      box-shadow: 0 8px 32px rgba(255,182,193,0.3);
+      border: 1px solid rgba(255,255,255,0.2);
+    }
+    
+    .section input[type="text"], .section input[type="password"] {
+      margin-top: .8rem; 
+      width: 100%; 
+      padding: 12px 16px;
+      border: 2px solid #fbb6ce;
+      border-radius: 12px;
+      font-size: 1rem;
+      transition: all 0.3s ease;
+      background: rgba(255,255,255,0.9);
+    }
+    
+    .section input[type="text"]:focus, .section input[type="password"]:focus {
+      outline: none;
+      border-color: #e53e3e;
+      box-shadow: 0 0 0 3px rgba(229,62,62,0.1);
+      transform: translateY(-2px);
+    }
+    
+    .section button { 
+      margin-top: 1rem; 
+      padding: 12px 24px; 
+      background: linear-gradient(135deg, #e53e3e 0%, #f56565 100%);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-size: 1rem;
+    }
+    
+    .section button:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 10px 25px rgba(229,62,62,0.3);
+    }
+    
+    .section button:disabled {
+      background: #cbd5e0;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+    
+    .helper { 
+      font-size: 0.9rem; 
+      color: #718096; 
+      margin-top: .5rem;
+      line-height: 1.5;
+    }
+    
+    #articles { 
+      max-height: 350px; 
+      overflow-y: auto; 
+      border: 2px solid #fbb6ce; 
+      padding: 1rem; 
+      font-size: .95rem;
+      border-radius: 12px;
+      background: rgba(255,255,255,0.8);
+    }
+    
+    .article-item { 
+      display: flex; 
+      align-items: center; 
+      margin-bottom: .8rem;
+      padding: 8px;
+      border-radius: 8px;
+      transition: background 0.2s ease;
+    }
+    
+    .article-item:hover {
+      background: rgba(255,182,193,0.2);
+    }
+    
+    .article-item input[type="radio"] { 
+      width: auto; 
+      margin-right: .8rem;
+      accent-color: #e53e3e;
+    }
+    
+    .article-item label { 
+      flex: 1; 
+      white-space: nowrap; 
+      overflow: hidden; 
+      text-overflow: ellipsis;
+      cursor: pointer;
+      font-weight: 400;
+    }
+    
+    #preview { 
+      overflow: visible;
+      background: rgba(255,255,255,0.9);
+      padding: 1.5rem;
+      border-radius: 12px;
+      margin-top: 1rem;
+      border: 2px solid #fbb6ce;
+    }
+    
+    #preview img { 
+      display: block; 
+      width: 100%; 
+      height: auto; 
+      object-fit: contain; 
+      margin: 1rem 0;
+      border-radius: 12px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+    
+    #preview h3 {
+      color: #d53f8c;
+      margin-bottom: 1rem;
+      font-weight: 600;
+    }
+    
+    .hidden { display: none; }
+    
+    #publishBtn {
+      background: linear-gradient(135deg, #38a169 0%, #48bb78 100%) !important;
+      font-size: 1.1rem !important;
+      padding: 15px 30px !important;
+    }
+    
+    #publishBtn:hover {
+      background: linear-gradient(135deg, #2f855a 0%, #38a169 100%) !important;
+    }
+    
+    /* 스크롤바 스타일링 */
+    #articles::-webkit-scrollbar {
+      width: 8px;
+    }
+    
+    #articles::-webkit-scrollbar-track {
+      background: rgba(255,182,193,0.2);
+      border-radius: 4px;
+    }
+    
+    #articles::-webkit-scrollbar-thumb {
+      background: #fbb6ce;
+      border-radius: 4px;
+    }
+    
+    #articles::-webkit-scrollbar-thumb:hover {
+      background: #e53e3e;
+    }
+  </style>
+</head>
+<body>
+  <h1>📰 AI Auto Posting(WordPress)</h1>
+
+  <div class="section">
+    <h2>① WordPress API 정보</h2>
+    <p class="helper">워드프레스 사이트 URL, 사용자명(워드프레스 계정) 및 App Password(워드프레스 앱 비밀번호)를 입력하세요.</p>
+    <input type="text" id="wp_site" placeholder="Site URL (https://example.com)" />
+    <input type="text" id="wp_user" placeholder="User ID (워드프레스 사용자명)" />
+    <input type="password" id="wp_pass" placeholder="App Password (워드프레스 앱 비밀번호)" />
+    <button id="saveWpBtn">저장</button>
+  </div>
+
+  <div class="section">
+    <h2>② API Keys 설정</h2>
+    <input type="password" id="openai_key" placeholder="OpenAI API Key" />
+    <input type="text" id="pexels_key" placeholder="Pexels API Key" />
+    <button id="saveKeysBtn">저장</button>
+  </div>
+
+  <div class="section">
+    <h2>③ 기사 검색</h2>
+    <input type="text" id="query" placeholder="검색어 입력" />
+    <button id="searchBtn">검색</button>
+    <div id="articles"></div>
+  </div>
+
+  <div class="section hidden" id="actions">
+    <h2>생성 & 미리보기</h2>
+    <button id="generateBtn">생성</button>
+    <div id="preview"></div>
+    <button id="publishBtn" disabled>🚀 WP 발행</button>
+  </div>
+
+<script>
+  ['wp_site','wp_user','wp_pass','openai_key','pexels_key'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = localStorage[id] || '';
+  });
+  document.getElementById('saveWpBtn').onclick = () => {
+    ['wp_site','wp_user','wp_pass'].forEach(id => localStorage[id] = document.getElementById(id).value.trim());
+    alert('✅ 워드프레스 정보 저장');
+  };
+  document.getElementById('saveKeysBtn').onclick = () => {
+    ['openai_key','pexels_key'].forEach(id => localStorage[id] = document.getElementById(id).value.trim());
+    alert('✅ API 키 저장');
+  };
+
+  function fetchWithTimeout(url, opts={}, ms=15000) {
+    const controller = new AbortController(), timeout = setTimeout(() => controller.abort(), ms);
+    return fetch(url, {...opts, signal: controller.signal}).finally(() => clearTimeout(timeout));
+  }
+  const PROXIES = [
+    u => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`,
+    u => `https://thingproxy.freeboard.io/fetch/${u}`,
+    u => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`
+  ];
+  async function fetchText(url) {
+    for (const fn of PROXIES) {
+      try {
+        const res = await fetchWithTimeout(fn(url)); if (!res.ok) throw new Error(res.status);
+        return await res.text();
+      } catch (e) { console.warn('Proxy failed', e); }
+    }
+    throw new Error('모든 프록시 실패');
+  }
+
+  async function translateToEnglish(text) {
+    const resp = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=ko|en`);
+    const json = await resp.json(); return json.responseData.translatedText;
+  }
+
+  let _items = [], _post = null;
+  const publishBtn = document.getElementById('publishBtn');
+
+  document.getElementById('searchBtn').onclick = async () => {
+    const q = document.getElementById('query').value.trim(); if (!q) return alert('검색어를 입력하세요.');
+    const ct = document.getElementById('articles'); ct.textContent = '⌛ 불러오는 중…';
+    const rssUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(q)}&hl=ko&gl=KR&ceid=KR:ko`;
+    let items = [];
+    try {
+      const res = await fetchWithTimeout(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}`);
+      const j = await res.json(); if (j.status==='ok') items = j.items.map(it=>({ title: it.title, link: it.link, pubDate: it.pubDate })); else throw new Error();
+    } catch {
+      const xml = await fetchText(rssUrl);
+      const doc = new DOMParser().parseFromString(xml,'application/xml');
+      items = Array.from(doc.querySelectorAll('item')).map(it=>({
+        title: it.querySelector('title')?.textContent||'',
+        link: it.querySelector('link')?.textContent||'',
+        pubDate: it.querySelector('pubDate')?.textContent||''
+      }));
+    }
+    _items = items; ct.innerHTML=''; if (!_items.length) { document.getElementById('actions').classList.add('hidden'); return alert('관련 기사가 없습니다.'); }
+    _items.sort((a,b)=>new Date(b.pubDate)-new Date(a.pubDate)); const cnt=Math.min(_items.length,30);
+    for(let i=0;i<cnt;i++){const it=_items[i],d=new Date(it.pubDate).toISOString().slice(0,16).replace('T',' ');
+      ct.insertAdjacentHTML('beforeend',`<div class="article-item"><input type="radio" name="art" id="a${i}" value="${i}"><label for="a${i}">${i+1}. ${it.title} [${d}]</label></div>`);
+    }
+    document.getElementById('actions').classList.remove('hidden');
+  };
+
+  document.getElementById('generateBtn').onclick = async () => {
+    _post = null;
+    publishBtn.disabled = true;
+    const sel = document.querySelector("input[name='art']:checked"); if (!sel) return alert('기사 선택 필요');
+    const article = _items[+sel.value];
+    const pv = document.getElementById('preview'); pv.innerHTML = '생성 중…';
+
+    try {
+      const aiKey = localStorage.openai_key; if (!aiKey) throw new Error('OpenAI 키 필요');
+      const prompt = `응답을 JSON 객체로만 반환하세요 (title, content, keywords). title은 기사 제목의 핵심 키워드를 조합하여 SEO 최적화된 새 제목으로 작성하세요.\ncontent는 HTML 형태로 3000자 이상 작성하세요.\n기사 제목: ${article.title}`;
+      const resAI = await fetch('https://api.openai.com/v1/chat/completions',{ method:'POST', headers:{ 'Content-Type':'application/json', Authorization:`Bearer ${aiKey}` }, body: JSON.stringify({ model:'gpt-4o-mini', messages:[{ role:'system', content:'당신은 SEO 블로그 전문가입니다. JSON 형식으로만 응답하세요.' },{ role:'user', content:prompt }], temperature:0.7 }) });
+      if (!resAI.ok) throw new Error(`OpenAI 오류: ${resAI.status}`);
+      let raw = (await resAI.json()).choices[0].message.content.trim(); raw = raw.replace(/^```(?:json)?/,'').replace(/```$/,'').trim();
+      let data;
+      try { data = JSON.parse(raw); } catch (pe) { console.error('Parsing error:', raw); throw new Error('JSON 파싱 실패: '+pe.message); }
+      // keywords를 배열로 강제 변환
+      if (!Array.isArray(data.keywords)) data.keywords = [data.keywords];
+
+      const cleanContent = data.content.replace(/<img[^>]*>/gi,'');
+      const engTitle = await translateToEnglish(article.title);
+      let pxRes = await fetch(`https://api.pexels.com/v1/search?query=${encodeURIComponent(engTitle)}&orientation=landscape&per_page=1`,{ headers:{ Authorization: localStorage.pexels_key } });
+      if (!pxRes.ok) throw new Error('Pexels 오류');
+      let photos = (await pxRes.json()).photos;
+      if (!photos || photos.length === 0) { const fb = await fetch(`https://api.pexels.com/v1/curated?per_page=1`,{ headers:{ Authorization: localStorage.pexels_key } }); photos = (await fb.json()).photos; }
+      const imgUrl = photos.length>0 ? photos[0].src.large2x : '';
+      const imgHtml = imgUrl ? `<img src="${imgUrl}" alt="대표 이미지">` : `<p style="color:gray;">대표 이미지 없음</p>`;
+      const snippet = cleanContent.slice(0,300) + (cleanContent.length>300?'...':'');
+      pv.innerHTML = `<h3>${data.title}</h3><p><strong>키워드:</strong> ${data.keywords.join(', ')}</p><div>${imgHtml}${snippet}</div>`;
+      _post = { title: data.title, content: cleanContent, tags: data.keywords, imgUrl };
+      publishBtn.disabled = false;
+    } catch (err) {
+      console.error(err);
+      pv.innerHTML = `<p style="color:red;">❌ ${err.message}</p>`;
+    }
+  };
+
+  publishBtn.onclick = async () => {
+    if (!_post) return alert('먼저 생성을 눌러주세요.');
+    const { title, content, tags, imgUrl } = _post;
+    const creds = btoa(`${localStorage.wp_user}:${localStorage.wp_pass}`);
+    try {
+      const tagIds = await Promise.all(tags.map(async t => { let r = await fetch(`${localStorage.wp_site}/wp-json/wp/v2/tags?search=${encodeURIComponent(t)}&per_page=1`,{ headers:{ Authorization:'Basic '+creds } }); let arr = await r.json(), id = arr[0]?.id; if (!id) { r = await fetch(`${localStorage.wp_site}/wp-json/wp/v2/tags`,{ method:'POST', headers:{ 'Content-Type':'application/json', Authorization:'Basic '+creds }, body: JSON.stringify({ name:t }) }); id = (await r.json()).id; } return id; }));
+      let postContent = content;
+      if (imgUrl) {
+        const blob = await fetch(imgUrl).then(r=>r.blob());
+        const fd = new FormData(); fd.append('file', blob, 'img.jpg'); fd.append('alt_text', title);
+        const mr = await fetch(`${localStorage.wp_site}/wp-json/wp/v2/media`,{ method:'POST', headers:{ Authorization:'Basic '+creds }, body: fd });
+        const mediaId = (await mr.json()).id;
+        postContent = `<p><img src="${imgUrl}"/></p>${content}`;
+        await fetch(`${localStorage.wp_site}/wp-json/wp/v2/posts`,{ method:'POST', headers:{ 'Content-Type':'application/json', Authorization:'Basic '+creds }, body: JSON.stringify({ title, content: postContent, status:'publish', tags: tagIds, featured_media: mediaId }) });
+      } else {
+        await fetch(`${localStorage.wp_site}/wp-json/wp/v2/posts`,{ method:'POST', headers:{ 'Content-Type':'application/json', Authorization:'Basic '+creds }, body: JSON.stringify({ title, content, status:'publish', tags: tagIds }) });
+      }
+      alert('🎉 발행 완료');
+    } catch (e) {
+      console.error(e);
+      alert('발행 실패: ' + e.message);
+    }
+  };
+</script>
+</body>
+</html>
