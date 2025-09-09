@@ -1,620 +1,8 @@
-static createSEOPrompt(articleTitle) {
-    return `당신은 구글 SEO 전문가이자 한국의 인기 블로거입니다. Rank Math SEO 플러그인에서 100점을 받을 수 있는 완벽한 블로그 글을 작성하세요.
-
-⚠️ 중요: 키워드 스터핑은 절대 금지입니다. 자연스러운 글쓰기가 최우선입니다.
-
-응답을 JSON 객체로만 반환하세요 (title, meta_description, content, keywords, tags).
-
-## 키워드 사용 규칙 (매우 중요)
-
-### 메인 키워드 사용 제한
-- 전체 글에서 메인 키워드는 최대 3-5회만 사용
-- 키워드 밀도 1.5% 이하 엄격 준수
-- 같은 키워드 반복 사용 절대 금지
-- 동의어, 유사어, 대체 표현을 다양하게 활용
-
-### 자연스러운 키워드 배치
-- 제목에 1회
-- 첫 문단에 1회
-- H2 소제목 중 1-2개에만 포함
-- 마지막 문단에 1회
-- 나머지는 모두 동의어나 관련 용어로 대체
-
-### 글 분량 요구사항
-- 최소 8,000자 이상 (HTML 태그 제외)
-- 충분한 분량으로 키워드 밀도를 자연스럽게 희석
-- 각 H2 섹션마다 최소 800-1,200자
-
-### 출력 구조
-1. title: 메인 키워드 1회만 포함, 60자 이내 SEO 제목
-2. meta_description: 메인 키워드 1회만 포함, 150자 이내 메타 설명
-3. content: 위 모든 조건을 만족하는 최소 8,000자 이상의 HTML 콘텐츠
-4. keywords: 메인 키워드 포함 다양한 관련 키워드 5-8개
-5. tags: 블로그 태그용 키워드 8-12개
-
-기사 제목: ${articleTitle}
-
-키워드 스터핑 없이 자연스럽고 풍부한 내용으로 Rank Math SEO에서 100점을 받을 수 있는 완벽한 블로그 글을 작성해주세요.`;
-  }
-  
-  static async generateThumbnailText(title, mainKeyword) {
-    const prompt = `다음 블로그 제목과 키워드를 바탕으로 구글 SEO에 최적화된 썸네일 문구를 생성해주세요.
-
-블로그 제목: ${title}
-메인 키워드: ${mainKeyword}
-
-요구사항:
-- 20-40자 내외의 적당한 길이
-- 메인 키워드를 자연스럽게 포함
-- 검색 의도를 명확히 반영
-- 클릭률을 높이는 매력적인 표현
-
-3가지 스타일로 생성:
-- 정보형: 구체적인 정보나 가이드를 제공한다는 느낌
-- 해결형: 문제나 궁금증을 해결해준다는 느낌  
-- 전문형: 전문가의 분석이나 인사이트를 제공한다는 느낌
-
-JSON 형식으로 응답: {"info": "정보형 문구", "solution": "해결형 문구", "expert": "전문형 문구"}`;
-
-    try {
-      const response = await ApiManager.callOpenAI(prompt, 0.7);
-      let thumbnailData = response.choices[0].message.content.trim();
-      thumbnailData = thumbnailData.replace(/^```(?:json)?/,'').replace(/```$/,'').trim();
-      
-      const parsedData = JSON.parse(thumbnailData);
-      
-      return `
-        <div style="text-align: left; line-height: 1.6;">
-          <div style="margin-bottom: 0.8rem; padding: 0.5rem; background: rgba(255,255,255,0.8); border-radius: 4px;"><strong>정보형:</strong> ${parsedData.info}</div>
-          <div style="margin-bottom: 0.8rem; padding: 0.5rem; background: rgba(255,255,255,0.8); border-radius: 4px;"><strong>해결형:</strong> ${parsedData.solution}</div>
-          <div style="padding: 0.5rem; background: rgba(255,255,255,0.8); border-radius: 4px;"><strong>전문형:</strong> ${parsedData.expert}</div>
-        </div>
-      `;
-    } catch (error) {
-      console.error('Thumbnail text generation failed:', error);
-      return '구글 SEO 최적화된 완벽 가이드 - 전문가가 알려주는 핵심 전략';
-    }
-  }
-  
-  static async generateImagePrompts(content, title, mainKeyword) {
-    const headings = content.match(/<h[23][^>]*>(.*?)<\/h[23]>/gi) || [];
-    const headingTexts = headings.map(h => h.replace(/<[^>]*>/g, '').trim());
-    
-    const prompt = `다음 블로그 글의 소제목들을 분석하여 각 섹션에 들어갈 이미지 프롬프트를 생성해주세요.
-
-블로그 제목: ${title}
-메인 키워드: ${mainKeyword}
-소제목들: ${headingTexts.join(', ')}
-
-요구사항:
-1. 구글 ImageFX에 최적화된 영문 프롬프트
-2. 사람이 나오는 경우 반드시 "Korean person" 또는 "Asian Korean" 명시
-3. 각 소제목과 관련성이 높은 구체적 이미지
-
-JSON 형식으로 응답: 
-{
-  "prompts": [
-    {
-      "heading": "소제목1",
-      "prompt": "이미지 프롬프트1"
-    }
-  ]
-}`;
-
-    try {
-      const response = await ApiManager.callOpenAI(prompt, 0.8);
-      let promptData = response.choices[0].message.content.trim();
-      promptData = promptData.replace(/^```(?:json)?/,'').replace(/```$/,'').trim();
-      
-      const parsedData = JSON.parse(promptData);
-      
-      return parsedData.prompts.map((item, index) => 
-        `<div style="margin: 1.5rem 0; padding: 1rem; background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-radius: 8px; border-left: 4px solid #e53e3e;">
-          <div style="display: flex; align-items: center; margin-bottom: 0.5rem;">
-            <span style="background: #e53e3e; color: white; padding: 3px 8px; border-radius: 4px; font-size: 0.8rem; margin-right: 0.5rem;">📸 ${index + 1}</span>
-            <strong style="color: #d53f8c;">${Utils.sanitizeText(item.heading)}</strong>
-          </div>
-          <div style="font-family: monospace; font-size: 0.85em; color: #495057; line-height: 1.4; background: rgba(255,255,255,0.7); padding: 0.5rem; border-radius: 4px;">
-            ${Utils.sanitizeText(item.prompt)}
-          </div>
-        </div>`
-      ).join('');
-    } catch (error) {
-      console.error('Image prompt generation failed:', error);
-      return '<p style="color: #888;">이미지 프롬프트 생성 중 오류가 발생했습니다.</p>';
-    }
-  }
-  
-  static async generateImageMetadata(content, title, mainKeyword, keywords) {
-    const headings = content.match(/<h[23][^>]*>(.*?)<\/h[23]>/gi) || [];
-    const headingTexts = headings.map(h => h.replace(/<[^>]*>/g, '').trim());
-    
-    const prompt = `다음 블로그 글의 소제목들을 기반으로 각 이미지의 메타데이터를 생성해주세요.
-
-블로그 제목: ${title}
-메인 키워드: ${mainKeyword}
-서브 키워드: ${keywords.join(', ')}
-소제목들: ${headingTexts.join(', ')}
-
-각 이미지마다 다음을 생성:
-1. 파일명 (영문, SEO 최적화, 하이픈 사용)
-2. Alt 텍스트 (서브키워드/대체키워드 활용, 메인키워드 과다 사용 금지)
-3. 캡션 (자연스러운 한국어, 서브키워드 포함)
-
-JSON 형식으로 응답:
-{
-  "images": [
-    {
-      "heading": "소제목1",
-      "filename": "파일명.jpg",
-      "alt": "Alt 텍스트",
-      "caption": "캡션"
-    }
-  ]
-}`;
-
-    try {
-      const response = await ApiManager.callOpenAI(prompt, 0.6);
-      let metadataData = response.choices[0].message.content.trim();
-      metadataData = metadataData.replace(/^```(?:json)?/,'').replace(/```$/,'').trim();
-      
-      const parsedData = JSON.parse(metadataData);
-      
-      return `
-        <div style="margin-top: 2rem; padding: 1rem; background: rgba(240,248,255,0.8); border-radius: 8px; border-left: 4px solid #4299e1;">
-          <h5 style="color: #2b6cb0; margin-bottom: 1rem; display: flex; align-items: center;">
-            <span style="margin-right: 0.5rem;">🏷️</span>이미지 메타데이터 (파일명/Alt/캡션)
-          </h5>
-          ${parsedData.images.map((item) => 
-            `<div style="margin-bottom: 1.5rem; padding: 0.8rem; background: rgba(255,255,255,0.9); border-radius: 6px; border: 1px solid #e2e8f0;">
-              <div style="font-weight: bold; color: #2d3748; margin-bottom: 0.5rem;">${Utils.sanitizeText(item.heading)}</div>
-              <div style="margin-bottom: 0.3rem;"><strong>파일명:</strong> <code style="background: #f7fafc; padding: 2px 4px; border-radius: 3px; font-size: 0.85em;">${Utils.sanitizeText(item.filename)}</code></div>
-              <div style="margin-bottom: 0.3rem;"><strong>Alt:</strong> <span style="color: #4a5568;">${Utils.sanitizeText(item.alt)}</span></div>
-              <div><strong>캡션:</strong> <span style="color: #4a5568; font-style: italic;">${Utils.sanitizeText(item.caption)}</span></div>
-            </div>`
-          ).join('')}
-        </div>
-      `;
-    } catch (error) {
-      console.error('Image metadata generation failed:', error);
-      return '<p style="color: #888;">이미지 메타데이터 생성 중 오류가 발생했습니다.</p>';
-    }
-  }
-}
-
-// 내보내기 관리 클래스
-class ExportManager {
-  static htmlToMarkdown(html) {
-    return html
-      .replace(/<h([1-6])>(.*?)<\/h[1-6]>/gi, (match, level, text) => '#'.repeat(parseInt(level)) + ' ' + text + '\n\n')
-      .replace(/<p>(.*?)<\/p>/gi, '$1\n\n')
-      .replace(/<br\s*\/?>/gi, '\n')
-      .replace(/<strong>(.*?)<\/strong>/gi, '**$1**')
-      .replace(/<b>(.*?)<\/b>/gi, '**$1**')
-      .replace(/<em>(.*?)<\/em>/gi, '*$1*')
-      .replace(/<i>(.*?)<\/i>/gi, '*$1*')
-      .replace(/<a href="(.*?)".*?>(.*?)<\/a>/gi, '[$2]($1)')
-      .replace(/<img[^>]*src="([^"]*)"[^>]*alt="([^"]*)"[^>]*>/gi, '![${2}]($1)')
-      .replace(/<img[^>]*src="([^"]*)"[^>]*>/gi, '![]($1)')
-      .replace(/<ul>/gi, '').replace(/<\/ul>/gi, '\n')
-      .replace(/<ol>/gi, '').replace(/<\/ol>/gi, '\n')
-      .replace(/<li>(.*?)<\/li>/gi, '- $1\n')
-      .replace(/<[^>]*>/g, '')
-      .replace(/\n\s*\n\s*\n/g, '\n\n')
-      .trim();
-  }
-  
-  static downloadFile(content, filename, type) {
-    try {
-      const blob = new Blob([content], { type });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    } catch (error) {
-      console.error('File download failed:', error);
-      throw new Error('파일 다운로드에 실패했습니다.');
-    }
-  }
-  
-  static async copyToClipboard(text) {
-    try {
-      await navigator.clipboard.writeText(text);
-      return true;
-    } catch (error) {
-      try {
-        const textarea = document.createElement('textarea');
-        textarea.value = text;
-        textarea.style.position = 'fixed';
-        textarea.style.opacity = '0';
-        document.body.appendChild(textarea);
-        textarea.select();
-        document.execCommand('copy');
-        document.body.removeChild(textarea);
-        return true;
-      } catch (fallbackError) {
-        console.error('Clipboard copy failed:', fallbackError);
-        return false;
-      }
-    }
-  }
-  
-  static sanitizeFilename(filename) {
-    return filename.replace(/[^a-zA-Z0-9가-힣]/g, '_').substring(0, 100);
-  }
-}
-
-// 메인 애플리케이션 클래스
-class App {
-  constructor() {
-    this.currentPost = null;
-    this.searchResults = [];
-    this.isGenerating = false;
-    this.isSearching = false;
-    
-    this.initializeEventListeners();
-    this.loadStoredKeys();
-  }
-  
-  initializeEventListeners() {
-    // API 키 저장
-    document.getElementById('saveKeysBtn').addEventListener('click', () => this.saveApiKeys());
-    
-    // 검색
-    document.getElementById('searchBtn').addEventListener('click', () => this.searchArticles());
-    document.getElementById('query').addEventListener('keypress', (e) => {
-      if (e.key === 'Enter') this.searchArticles();
-    });
-    
-    // 생성
-    document.getElementById('generateBtn').addEventListener('click', () => this.generateContent());
-    
-    // 내보내기
-    document.getElementById('copyHtmlBtn').addEventListener('click', () => this.copyHtml());
-    document.getElementById('copyMarkdownBtn').addEventListener('click', () => this.copyMarkdown());
-    document.getElementById('downloadHtmlBtn').addEventListener('click', () => this.downloadHtml());
-    document.getElementById('downloadMarkdownBtn').addEventListener('click', () => this.downloadMarkdown());
-    document.getElementById('captureBtn').addEventListener('click', () => this.captureImage());
-  }
-  
-  loadStoredKeys() {
-    const keys = ['openai_key', 'pexels_key'];
-    keys.forEach(key => {
-      const element = document.getElementById(key);
-      const stored = localStorage.getItem(key);
-      if (element && stored) {
-        element.value = stored;
-      }
-    });
-  }
-  
-  saveApiKeys() {
-    const openaiKey = document.getElementById('openai_key').value.trim();
-    const pexelsKey = document.getElementById('pexels_key').value.trim();
-    
-    let hasError = false;
-    
-    // OpenAI 키 검증
-    if (openaiKey && !Utils.validateOpenAIKey(openaiKey)) {
-      Utils.showError('openai_error', '올바른 OpenAI API 키 형식이 아닙니다. (sk-로 시작하는 키)');
-      hasError = true;
-    }
-    
-    // Pexels 키 검증
-    if (pexelsKey && !Utils.validatePexelsKey(pexelsKey)) {
-      Utils.showError('pexels_error', 'Pexels API 키가 너무 짧습니다.');
-      hasError = true;
-    }
-    
-    if (hasError) return;
-    
-    // 저장
-    if (openaiKey) localStorage.setItem('openai_key', openaiKey);
-    if (pexelsKey) localStorage.setItem('pexels_key', pexelsKey);
-    
-    Utils.showSuccess('keys_success', 'API 키가 저장되었습니다.');
-  }
-  
-  async searchArticles() {
-    if (this.isSearching) return;
-    
-    const query = document.getElementById('query').value.trim();
-    if (!query) {
-      alert('검색어를 입력해주세요.');
-      return;
-    }
-    
-    this.isSearching = true;
-    Utils.setButtonLoading('searchBtn', true);
-    Utils.updateProgress('searchProgress', 10);
-    
-    try {
-      // 구글 뉴스 검색
-      Utils.updateProgress('searchProgress', 30);
-      const googleResults = await NewsSearcher.searchGoogleNews(query);
-      
-      // 네이버 뉴스 검색
-      Utils.updateProgress('searchProgress', 60);
-      const naverResults = await NewsSearcher.searchNaverNews(query);
-      
-      // 결과 합치기 및 중복 제거
-      Utils.updateProgress('searchProgress', 80);
-      const allResults = [...googleResults, ...naverResults];
-      const uniqueResults = NewsSearcher.removeDuplicates(allResults);
-      
-      // 점수 계산 및 정렬
-      uniqueResults.forEach(item => {
-        item.finalScore = NewsSearcher.calculateFinalScore(item, query);
-      });
-      
-      this.searchResults = uniqueResults
-        .sort((a, b) => b.finalScore - a.finalScore)
-        .slice(0, CONFIG.MAX_ARTICLES);
-      
-      Utils.updateProgress('searchProgress', 100);
-      this.displaySearchResults();
-      
-    } catch (error) {
-      console.error('Search failed:', error);
-      alert('검색 중 오류가 발생했습니다: ' + error.message);
-    } finally {
-      this.isSearching = false;
-      Utils.setButtonLoading('searchBtn', false);
-      Utils.updateProgress('searchProgress', 0);
-    }
-  }
-  
-  displaySearchResults() {
-    const container = document.getElementById('articles');
-    const actionsSection = document.getElementById('actions');
-    
-    if (!this.searchResults.length) {
-      container.innerHTML = '<p style="text-align: center; color: #666; padding: 2rem;">관련 기사를 찾을 수 없습니다.</p>';
-      actionsSection.classList.add('hidden');
-      return;
-    }
-    
-    container.innerHTML = this.searchResults.map((item, index) => {
-      const date = new Date(item.pubDate).toISOString().slice(0, 16).replace('T', ' ');
-      const sourceIcon = item.source === 'naver' ? '🔥' : '📰';
-      
-      return `
-        <div class="article-item">
-          <input type="radio" name="article" id="article_${index}" value="${index}">
-          <label for="article_${index}">
-            ${sourceIcon} ${index + 1}. ${Utils.sanitizeText(item.title)} [${date}]
-          </label>
-        </div>
-      `;
-    }).join('');
-    
-    actionsSection.classList.remove('hidden');
-  }
-  
-  async generateContent() {
-    if (this.isGenerating) return;
-    
-    const selectedArticle = document.querySelector('input[name="article"]:checked');
-    if (!selectedArticle) {
-      alert('기사를 선택해주세요.');
-      return;
-    }
-    
-    const articleIndex = parseInt(selectedArticle.value);
-    const article = this.searchResults[articleIndex];
-    const query = document.getElementById('query').value.trim();
-    
-    this.isGenerating = true;
-    this.currentPost = null;
-    
-    Utils.setButtonLoading('generateBtn', true);
-    Utils.updateProgress('generateProgress', 5);
-    
-    const preview = document.getElementById('preview');
-    preview.innerHTML = '<div style="text-align: center; padding: 2rem; color: #666;">콘텐츠 생성 중입니다...</div>';
-    
-    try {
-      // 1. 메인 콘텐츠 생성
-      Utils.updateProgress('generateProgress', 20);
-      const prompt = ContentGenerator.createSEOPrompt(article.title);
-      const response = await ApiManager.callOpenAI(prompt, 0.6);
-      
-      Utils.updateProgress('generateProgress', 40);
-      let rawContent = response.choices[0].message.content.trim();
-      rawContent = rawContent.replace(/^```(?:json)?/,'').replace(/```$/,'').trim();
-      
-      const data = JSON.parse(rawContent);
-      
-      // 데이터 검증
-      if (!data.title || !data.content) {
-        throw new Error('필수 데이터가 생성되지 않았습니다.');
-      }
-      
-      // 기본값 설정
-      data.keywords = Array.isArray(data.keywords) ? data.keywords : [data.keywords || query];
-      data.tags = Array.isArray(data.tags) ? data.tags : [data.tags || query];
-      data.meta_description = data.meta_description || data.content.replace(/<[^>]*>/g, '').slice(0, 150) + '...';
-      
-      Utils.updateProgress('generateProgress', 60);
-      
-      // 2. 병렬로 추가 콘텐츠 생성
-      const [thumbnailText, imagePrompts, imageMetadata, featuredImage] = await Promise.all([
-        ContentGenerator.generateThumbnailText(data.title, query),
-        ContentGenerator.generateImagePrompts(data.content, data.title, query),
-        ContentGenerator.generateImageMetadata(data.content, data.title, query, data.keywords),
-        this.getFeaturedImage(article.title)
-      ]);
-      
-      Utils.updateProgress('generateProgress', 90);
-      
-      // 3. 결과 조합
-      const cleanContent = data.content.replace(/<img[^>]*>/gi, '');
-      const imgHtml = featuredImage ? 
-        `<img src="${featuredImage}" alt="대표 이미지" style="width: 100%; border-radius: 8px;">` : 
-        '<p style="color: gray; text-align: center; padding: 1rem;">대표 이미지 없음</p>';
-      
-      // 4. 미리보기 표시
-      preview.innerHTML = `
-        <h3>${Utils.sanitizeText(data.title)}</h3>
-        <p><strong>메타 설명:</strong> ${Utils.sanitizeText(data.meta_description)}</p>
-        <p><strong>메인키워드:</strong> ${Utils.sanitizeText(query)}</p>
-        <p><strong>키워드:</strong> ${data.keywords.map(k => Utils.sanitizeText(k)).join(', ')}</p>
-        
-        <div style="margin: 1rem 0; padding: 1rem; background: linear-gradient(135deg, #ff6b6b, #ee5a24); border-radius: 8px; color: white; text-align: center; font-weight: bold; font-size: 1.1rem; text-shadow: 1px 1px 2px rgba(0,0,0,0.3);">
-          ${thumbnailText}
-        </div>
-        
-        <div>${imgHtml}</div>
-        <div style="margin-top: 1rem;">${cleanContent}</div>
-        
-        <div class="content-section">
-          <div class="section-title">
-            <span>🎨</span>소제목별 이미지 프롬프트 (구글 ImageFX용)
-          </div>
-          ${imagePrompts}
-          ${imageMetadata}
-        </div>
-      `;
-      
-      // 5. 포스트 데이터 저장
-      this.currentPost = {
-        title: data.title,
-        content: cleanContent,
-        tags: data.tags,
-        keywords: data.keywords,
-        meta_description: data.meta_description,
-        mainKeyword: query,
-        imgUrl: featuredImage,
-        imagePrompts,
-        imageMetadata,
-        thumbnailText
-      };
-      
-      Utils.updateProgress('generateProgress', 100);
-      
-      // 내보내기 옵션 표시
-      document.getElementById('exportOptions').classList.remove('hidden');
-      
-    } catch (error) {
-      console.error('Content generation failed:', error);
-      preview.innerHTML = `<p style="color: red; text-align: center; padding: 2rem;">❌ ${error.message}</p>`;
-    } finally {
-      this.isGenerating = false;
-      Utils.setButtonLoading('generateBtn', false);
-      Utils.updateProgress('generateProgress', 0);
-    }
-  }
-  
-  async getFeaturedImage(title) {
-    try {
-      const englishTitle = await ContentGenerator.translateToEnglish(title);
-      return await ApiManager.searchPexelsImage(englishTitle);
-    } catch (error) {
-      console.warn('Featured image search failed:', error);
-      return null;
-    }
-  }
-  
-  async copyHtml() {
-    if (!this.currentPost) {
-      alert('먼저 콘텐츠를 생성해주세요.');
-      return;
-    }
-    
-    const htmlContent = this.buildHtmlContent();
-    const success = await ExportManager.copyToClipboard(htmlContent);
-    
-    if (success) {
-      alert('✅ HTML이 클립보드에 복사되었습니다!');
-    } else {
-      alert('❌ 클립보드 복사에 실패했습니다.');
-    }
-  }
-  
-  async copyMarkdown() {
-    if (!this.currentPost) {
-      alert('먼저 콘텐츠를 생성해주세요.');
-      return;
-    }
-    
-    const markdownContent = this.buildMarkdownContent();
-    const success = await ExportManager.copyToClipboard(markdownContent);
-    
-    if (success) {
-      alert('✅ Markdown이 클립보드에 복사되었습니다!');
-    } else {
-      alert('❌ 클립보드 복사에 실패했습니다.');
-    }
-  }
-  
-  downloadHtml() {
-    if (!this.currentPost) {
-      alert('먼저 콘텐츠를 생성해주세요.');
-      return;
-    }
-    
-    try {
-      const htmlContent = this.buildCompleteHtmlDocument();
-      const filename = ExportManager.sanitizeFilename(this.currentPost.title) + '.html';
-      ExportManager.downloadFile(htmlContent, filename, 'text/html');
-    } catch (error) {
-      alert('❌ HTML 파일 다운로드에 실패했습니다.');
-    }
-  }
-  
-  downloadMarkdown() {
-    if (!this.currentPost) {
-      alert('먼저 콘텐츠를 생성해주세요.');
-      return;
-    }
-    
-    try {
-      const markdownContent = this.buildMarkdownContent();
-      const filename = ExportManager.sanitizeFilename(this.currentPost.title) + '.md';
-      ExportManager.downloadFile(markdownContent, filename, 'text/markdown');
-    } catch (error) {
-      alert('❌ Markdown 파일 다운로드에 실패했습니다.');
-    }
-  }
-  
-  async captureImage() {
-    if (!this.currentPost) {
-      alert('먼저 콘텐츠를 생성해주세요.');
-      return;
-    }
-    
-    try {
-      if (!window.html2canvas) {
-        const script = document.createElement('script');
-        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
-        document.head.appendChild(script);
-        await new Promise(resolve => script.onload = resolve);
-      }
-      
-      const preview = document.getElementById('preview');
-      const canvas = await html2canvas(preview, {
-        backgroundColor: '#ffffff',
-        scale: 2,
-        useCORS: true
-      });
-      
-      canvas.toBlob(blob => {
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = ExportManager.sanitizeFilename(this.currentPost.title) + '.png';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
-  <title>Suah AI Auto Posting</title>
+  <title>내맘대로 글써주는놈</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap');
     
@@ -646,12 +34,6 @@ class App {
       line-height: 1.6;
     }
     
-    .container {
-      display: flex;
-      flex-direction: column;
-      gap: 1rem;
-    }
-    
     h1 { 
       text-align: center; 
       color: var(--primary-color);
@@ -674,10 +56,10 @@ class App {
       backdrop-filter: blur(10px);
       border: none;
       padding: 1.5rem; 
+      margin-bottom: 1rem;
       border-radius: var(--border-radius); 
       box-shadow: var(--box-shadow);
       border: 1px solid rgba(255,255,255,0.2);
-      position: relative;
     }
     
     .input-group {
@@ -685,10 +67,6 @@ class App {
       flex-direction: column;
       gap: 0.5rem;
       margin-bottom: 1rem;
-    }
-    
-    .input-group:last-child {
-      margin-bottom: 0;
     }
     
     .section input[type="text"], 
@@ -732,37 +110,11 @@ class App {
       box-shadow: 0 8px 25px rgba(229,62,62,0.3);
     }
     
-    .btn:active:not(:disabled) {
-      transform: translateY(0);
-    }
-    
     .btn:disabled {
       background: #cbd5e0;
       cursor: not-allowed;
       transform: none;
       box-shadow: none;
-    }
-    
-    .btn.loading {
-      pointer-events: none;
-    }
-    
-    .btn.loading::after {
-      content: '';
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      width: 20px;
-      height: 20px;
-      border: 2px solid transparent;
-      border-top: 2px solid white;
-      border-radius: 50%;
-      animation: spin 1s linear infinite;
-      transform: translate(-50%, -50%);
-    }
-    
-    @keyframes spin {
-      to { transform: translate(-50%, -50%) rotate(360deg); }
     }
     
     .helper { 
@@ -878,27 +230,6 @@ class App {
       margin: 0 !important;
     }
     
-    .export-btn:hover:not(:disabled) {
-      background: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%) !important;
-      transform: translateY(-2px);
-    }
-    
-    .progress-bar {
-      width: 100%;
-      height: 4px;
-      background: rgba(255,255,255,0.3);
-      border-radius: 2px;
-      overflow: hidden;
-      margin-top: 1rem;
-    }
-    
-    .progress-fill {
-      height: 100%;
-      background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
-      width: 0%;
-      transition: width 0.3s ease;
-    }
-    
     .content-section {
       margin: 2rem 0;
       padding: 1.5rem;
@@ -916,33 +247,6 @@ class App {
       font-weight: 600;
     }
     
-    .section-title span {
-      margin-right: 0.5rem;
-    }
-    
-    /* 스크롤바 스타일링 */
-    #articles::-webkit-scrollbar, 
-    #preview::-webkit-scrollbar {
-      width: 6px;
-    }
-    
-    #articles::-webkit-scrollbar-track, 
-    #preview::-webkit-scrollbar-track {
-      background: rgba(255,182,193,0.2);
-      border-radius: 3px;
-    }
-    
-    #articles::-webkit-scrollbar-thumb, 
-    #preview::-webkit-scrollbar-thumb {
-      background: var(--accent-color);
-      border-radius: 3px;
-    }
-    
-    #articles::-webkit-scrollbar-thumb:hover, 
-    #preview::-webkit-scrollbar-thumb:hover {
-      background: var(--primary-color);
-    }
-
     /* 모바일 반응형 디자인 */
     @media (max-width: 768px) {
       body {
@@ -954,170 +258,59 @@ class App {
         margin-bottom: 1rem;
       }
       
-      h2 {
-        font-size: 1.1rem;
-      }
-      
       .section {
         padding: 1rem;
-      }
-      
-      .section input[type="text"], 
-      .section input[type="password"] {
-        padding: 10px 12px;
-        font-size: 16px; /* iOS 줌 방지 */
-      }
-      
-      .btn {
-        padding: 14px 20px;
-        font-size: 1rem;
-      }
-      
-      .helper {
-        font-size: 0.8rem;
-      }
-      
-      #articles {
-        max-height: 250px;
-        padding: 0.8rem;
-        font-size: 0.85rem;
-      }
-      
-      .article-item {
-        padding: 6px;
-        margin-bottom: 0.6rem;
-      }
-      
-      .article-item label {
-        font-size: 0.85rem;
-      }
-      
-      #preview {
-        padding: 1rem;
-        max-height: 400px;
-        font-size: 0.9rem;
-        line-height: 1.6;
-      }
-      
-      #preview h2, #preview h3, #preview h4 {
-        word-break: keep-all;
-        word-wrap: break-word;
-        line-height: 1.4;
-        margin: 1rem 0 0.5rem 0;
-      }
-      
-      #preview p {
-        word-break: break-word;
-        line-height: 1.6;
-        margin-bottom: 1rem;
-      }
-      
-      #preview h3 {
-        font-size: 1.1rem;
       }
       
       .export-grid {
         grid-template-columns: 1fr 1fr;
         gap: 0.5rem;
       }
-      
-      .content-section {
-        padding: 1rem;
-        margin: 1rem 0;
-      }
-      
-      /* 스크롤바 모바일에서 더 얇게 */
-      #articles::-webkit-scrollbar, 
-      #preview::-webkit-scrollbar {
-        width: 4px;
-      }
-    }
-
-    /* 아주 작은 화면 (380px 이하) */
-    @media (max-width: 380px) {
-      body {
-        padding: 0.3rem;
-      }
-      
-      h1 {
-        font-size: 1.5rem;
-      }
-      
-      .section {
-        padding: 0.8rem;
-      }
-      
-      .section input[type="text"], 
-      .section input[type="password"] {
-        padding: 8px 10px;
-      }
-      
-      #articles {
-        max-height: 200px;
-        padding: 0.6rem;
-      }
-      
-      #preview {
-        padding: 0.8rem;
-        max-height: 350px;
-      }
-      
-      .export-grid {
-        grid-template-columns: 1fr;
-      }
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h1>Suah AI Auto Posting</h1>
+  <h1>Suah AI Auto Posting</h1>
 
-    <div class="section">
-      <h2>API Keys 설정</h2>
-      <div class="input-group">
-        <input type="password" id="openai_key" placeholder="OpenAI API Key (sk-...)" />
-        <div id="openai_error" class="error-message hidden">올바른 OpenAI API 키 형식이 아닙니다.</div>
-      </div>
-      <div class="input-group">
-        <input type="text" id="pexels_key" placeholder="Pexels API Key" />
-        <div id="pexels_error" class="error-message hidden">Pexels API 키를 입력해주세요.</div>
-      </div>
-      <button id="saveKeysBtn" class="btn">저장</button>
-      <div id="keys_success" class="success-message hidden">API 키가 저장되었습니다.</div>
+  <div class="section">
+    <h2>내맘대로 글써주는놈</h2>
+    <div class="input-group">
+      <input type="password" id="openai_key" placeholder="OpenAI API Key (sk-...)" />
+      <div id="openai_error" class="error-message hidden">올바른 OpenAI API 키 형식이 아닙니다.</div>
     </div>
-
-    <div class="section">
-      <h2>기사 검색</h2>
-      <div class="input-group">
-        <input type="text" id="query" placeholder="검색어 입력" />
-        <div class="helper">예: 아이폰, 삼성, 코인, 주식 등</div>
-      </div>
-      <button id="searchBtn" class="btn">검색</button>
-      <div class="progress-bar hidden" id="searchProgress">
-        <div class="progress-fill"></div>
-      </div>
-      <div id="articles"></div>
+    <div class="input-group">
+      <input type="text" id="pexels_key" placeholder="Pexels API Key" />
+      <div id="pexels_error" class="error-message hidden"> API 키를 입력해주세요.</div>
     </div>
+    <button id="saveKeysBtn" class="btn">저장</button>
+    <div id="keys_success" class="success-message hidden">API 키가 저장되었습니다.</div>
+  </div>
 
-    <div class="section hidden" id="actions">
-      <h2>생성 & 미리보기</h2>
-      <button id="generateBtn" class="btn">생성</button>
-      <div class="progress-bar hidden" id="generateProgress">
-        <div class="progress-fill"></div>
+  <div class="section">
+    <h2>기사 검색하는 곳</h2>
+    <div class="input-group">
+      <input type="text" id="query" placeholder="검색어 입력" />
+      <div class="helper">예: 아이폰, 삼성, 코인, 주식 등</div>
+    </div>
+    <button id="searchBtn" class="btn">검색</button>
+    <div id="articles"></div>
+  </div>
+
+  <div class="section hidden" id="actions">
+    <h2>생성 & 미리보기</h2>
+    <button id="generateBtn" class="btn">생성</button>
+    <div id="preview"></div>
+    
+    <div id="exportOptions" class="hidden">
+      <div class="section-title">
+        <span>📋</span>내보내기 옵션
       </div>
-      <div id="preview"></div>
-      
-      <div id="exportOptions" class="hidden">
-        <div class="section-title">
-          <span>📋</span>내보내기 옵션
-        </div>
-        <div class="export-grid">
-          <button id="copyHtmlBtn" class="btn export-btn">📄 HTML 복사</button>
-          <button id="copyMarkdownBtn" class="btn export-btn">📝 Markdown 복사</button>
-          <button id="downloadHtmlBtn" class="btn export-btn">💾 HTML 저장</button>
-          <button id="downloadMarkdownBtn" class="btn export-btn">💾 MD 저장</button>
-          <button id="captureBtn" class="btn export-btn">📸 이미지 저장</button>
-        </div>
+      <div class="export-grid">
+        <button id="copyHtmlBtn" class="btn export-btn">📄 HTML 복사</button>
+        <button id="copyMarkdownBtn" class="btn export-btn">📝 Markdown 복사</button>
+        <button id="downloadHtmlBtn" class="btn export-btn">💾 HTML 저장</button>
+        <button id="downloadMarkdownBtn" class="btn export-btn">💾 MD 저장</button>
+        <button id="captureBtn" class="btn export-btn">📸 이미지 저장</button>
       </div>
     </div>
   </div>
@@ -1126,8 +319,6 @@ class App {
 // 설정 및 상수
 const CONFIG = {
   MAX_ARTICLES: 30,
-  MIN_CONTENT_LENGTH: 8000,
-  KEYWORD_DENSITY_MAX: 1.5,
   FETCH_TIMEOUT: 15000,
   OPENAI_API_KEY_PATTERN: /^sk-[a-zA-Z0-9]{20,}$/,
   PEXELS_API_KEY_MIN_LENGTH: 10
@@ -1137,7 +328,7 @@ const CONFIG = {
 class Utils {
   static sanitizeText(text) {
     const div = document.createElement('div');
-    div.textContent = text;
+    div.textContent = text || '';
     return div.innerHTML;
   }
   
@@ -1149,50 +340,12 @@ class Utils {
     return key?.trim().length >= CONFIG.PEXELS_API_KEY_MIN_LENGTH;
   }
   
-  static showError(elementId, message) {
+  static showMessage(elementId, message, isError = false) {
     const element = document.getElementById(elementId);
     if (element) {
       element.textContent = message;
       element.classList.remove('hidden');
-      setTimeout(() => element.classList.add('hidden'), 5000);
-    }
-  }
-  
-  static showSuccess(elementId, message) {
-    const element = document.getElementById(elementId);
-    if (element) {
-      element.textContent = message;
-      element.classList.remove('hidden');
-      setTimeout(() => element.classList.add('hidden'), 3000);
-    }
-  }
-  
-  static setButtonLoading(buttonId, isLoading) {
-    const button = document.getElementById(buttonId);
-    if (!button) return;
-    
-    if (isLoading) {
-      button.classList.add('loading');
-      button.disabled = true;
-    } else {
-      button.classList.remove('loading');
-      button.disabled = false;
-    }
-  }
-  
-  static updateProgress(progressId, percentage) {
-    const progressBar = document.getElementById(progressId);
-    if (!progressBar) return;
-    
-    const fill = progressBar.querySelector('.progress-fill');
-    if (fill) {
-      fill.style.width = `${Math.min(100, Math.max(0, percentage))}%`;
-    }
-    
-    if (percentage === 0) {
-      progressBar.classList.add('hidden');
-    } else {
-      progressBar.classList.remove('hidden');
+      setTimeout(() => element.classList.add('hidden'), isError ? 5000 : 3000);
     }
   }
 }
@@ -1232,7 +385,7 @@ class ApiManager {
         model: 'gpt-4o-mini',
         messages: [{
           role: 'system',
-          content: '당신은 키워드 스터핑을 절대 하지 않는 전문 SEO 라이터입니다. 자연스러운 글쓰기로 고품질 콘텐츠를 만들어 JSON만 반환하세요.'
+          content: '당신은 키워드 스터핑을 절대 하지 않는 전문 SEO 라이터입니다.'
         }, {
           role: 'user',
           content: prompt
@@ -1257,10 +410,8 @@ class ApiManager {
     
     try {
       const response = await this.fetchWithTimeout(
-        `https://api.pexels.com/v1/search?query=${encodeURIComponent(query)}&orientation=landscape&per_page=1`,
-        {
-          headers: { Authorization: apiKey }
-        }
+        `https://api.pexels.com/v1/search?query=${encodeURIComponent(query)}&per_page=1`,
+        { headers: { Authorization: apiKey } }
       );
       
       if (!response.ok) return null;
@@ -1283,20 +434,16 @@ class NewsSearcher {
   ];
   
   static async fetchWithProxies(url) {
-    const errors = [];
-    
     for (const proxyFn of this.PROXIES) {
       try {
         const response = await ApiManager.fetchWithTimeout(proxyFn(url));
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         return await response.text();
       } catch (error) {
-        errors.push(error.message);
         console.warn('Proxy failed:', error);
       }
     }
-    
-    throw new Error(`모든 프록시 실패: ${errors.join(', ')}`);
+    throw new Error('모든 프록시 실패');
   }
   
   static async searchGoogleNews(query) {
@@ -1318,7 +465,7 @@ class NewsSearcher {
         }));
       }
     } catch (error) {
-      console.warn('RSS2JSON failed, trying direct XML:', error);
+      console.warn('RSS2JSON failed:', error);
     }
     
     try {
@@ -1341,8 +488,7 @@ class NewsSearcher {
   
   static async searchNaverNews(query) {
     const naverUrls = [
-      'https://rss.news.naver.com/services/news/mainnews.xml',
-      'https://rss.news.naver.com/services/news/ranking/popular_day.xml'
+      'https://rss.news.naver.com/services/news/mainnews.xml'
     ];
     
     const allItems = [];
@@ -1374,6 +520,22 @@ class NewsSearcher {
     }
     
     return allItems;
+  }
+  
+  static removeDuplicates(items) {
+    const unique = [];
+    
+    for (const item of items) {
+      const isDuplicate = unique.some(existing => 
+        this.calculateSimilarity(item.title, existing.title) > 0.7
+      );
+      
+      if (!isDuplicate) {
+        unique.push(item);
+      }
+    }
+    
+    return unique;
   }
   
   static calculateSimilarity(str1, str2) {
@@ -1414,22 +576,6 @@ class NewsSearcher {
     return costs[s2.length];
   }
   
-  static removeDuplicates(items) {
-    const unique = [];
-    
-    for (const item of items) {
-      const isDuplicate = unique.some(existing => 
-        this.calculateSimilarity(item.title, existing.title) > 0.7
-      );
-      
-      if (!isDuplicate) {
-        unique.push(item);
-      }
-    }
-    
-    return unique;
-  }
-  
   static calculateFinalScore(item, query) {
     const timeScore = (Date.now() - new Date(item.pubDate)) / (1000 * 60 * 60);
     const keywords = query.toLowerCase().split(' ');
@@ -1452,25 +598,514 @@ class ContentGenerator {
       const data = await response.json();
       return data.responseData?.translatedText || text;
     } catch (error) {
-      console.warn('Translation failed:', error);
       return text;
     }
   }
   
   static createSEOPrompt(articleTitle) {
-    return `당신은 구글 SEO 전문가이자 한국의 인기 블로거입니다. Rank Math SEO 플러그인에서 100점을 받을 수 있는 완벽한 블로그 글을 작성하세요.
+    return `당신은 구글 SEO 전문가입니다. 키워드 스터핑 없이 자연스러운 8000자 이상의 블로그 글을 작성하세요.
 
-⚠️ 중요: 키워드 스터핑은 절대 금지입니다. 자연스러운 글쓰기가 최우선입니다.
+기사 제목: ${articleTitle}
 
-응답을 JSON 객체로만 반환하세요 (title, meta_description, content, keywords, tags).
+응답을 JSON 객체로만 반환하세요:
+{
+  "title": "SEO 최적화 제목 (60자 이내)",
+  "meta_description": "메타 설명 (150자 이내)",
+  "content": "8000자 이상 HTML 콘텐츠",
+  "keywords": ["키워드1", "키워드2"],
+  "tags": ["태그1", "태그2"]
+}
 
-## 키워드 사용 규칙 (매우 중요)
+요구사항:
+- 키워드 밀도 1.5% 이하
+- H2, H3 태그로 구조화
+- 자연스러운 한국어
+- 개인적 경험 포함
+- FAQ 섹션 포함`;
+  }
+  
+  static async generateContent(prompt) {
+    try {
+      const response = await ApiManager.callOpenAI(prompt, 0.6);
+      let rawContent = response.choices[0].message.content.trim();
+      rawContent = rawContent.replace(/^```(?:json)?/,'').replace(/```$/,'').trim();
+      
+      const data = JSON.parse(rawContent);
+      
+      // 기본값 설정
+      data.keywords = Array.isArray(data.keywords) ? data.keywords : [data.keywords || ''];
+      data.tags = Array.isArray(data.tags) ? data.tags : [data.tags || ''];
+      data.meta_description = data.meta_description || 
+        data.content.replace(/<[^>]*>/g, '').slice(0, 150) + '...';
+      
+      return data;
+    } catch (error) {
+      throw new Error('콘텐츠 생성 실패: ' + error.message);
+    }
+  }
+}
 
-### 메인 키워드 사용 제한
-- 전체 글에서 메인 키워드는 최대 3-5회만 사용
-- 키워드 밀도 1.5% 이하 엄격 준수
-- 같은 키워드 반복 사용 절대 금지
-- 동의어, 유사어, 대체 표현을 다양하게 활용
+// 내보내기 관리 클래스
+class ExportManager {
+  static async copyToClipboard(text) {
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch (error) {
+      try {
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+        return true;
+      } catch (fallbackError) {
+        return false;
+      }
+    }
+  }
+  
+  static downloadFile(content, filename, type) {
+    try {
+      const blob = new Blob([content], { type });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      throw new Error('파일 다운로드 실패');
+    }
+  }
+  
+  static sanitizeFilename(filename) {
+    return filename.replace(/[^a-zA-Z0-9가-힣]/g, '_').substring(0, 100);
+  }
+}
 
-### 자연스러운 키워드 배치
--
+// 메인 애플리케이션 클래스
+class App {
+  constructor() {
+    this.currentPost = null;
+    this.searchResults = [];
+    this.isGenerating = false;
+    this.isSearching = false;
+    
+    this.initializeEventListeners();
+    this.loadStoredKeys();
+  }
+  
+  initializeEventListeners() {
+    document.getElementById('saveKeysBtn').addEventListener('click', () => this.saveApiKeys());
+    document.getElementById('searchBtn').addEventListener('click', () => this.searchArticles());
+    document.getElementById('query').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') this.searchArticles();
+    });
+    document.getElementById('generateBtn').addEventListener('click', () => this.generateContent());
+    document.getElementById('copyHtmlBtn').addEventListener('click', () => this.copyHtml());
+    document.getElementById('copyMarkdownBtn').addEventListener('click', () => this.copyMarkdown());
+    document.getElementById('downloadHtmlBtn').addEventListener('click', () => this.downloadHtml());
+    document.getElementById('downloadMarkdownBtn').addEventListener('click', () => this.downloadMarkdown());
+    document.getElementById('captureBtn').addEventListener('click', () => this.captureImage());
+  }
+  
+  loadStoredKeys() {
+    const keys = ['openai_key', 'pexels_key'];
+    keys.forEach(key => {
+      const element = document.getElementById(key);
+      const stored = localStorage.getItem(key);
+      if (element && stored) {
+        element.value = stored;
+      }
+    });
+  }
+  
+  saveApiKeys() {
+    const openaiKey = document.getElementById('openai_key').value.trim();
+    const pexelsKey = document.getElementById('pexels_key').value.trim();
+    
+    let hasError = false;
+    
+    if (openaiKey && !Utils.validateOpenAIKey(openaiKey)) {
+      Utils.showMessage('openai_error', '올바른 OpenAI API 키 형식이 아닙니다.', true);
+      hasError = true;
+    }
+    
+    if (pexelsKey && !Utils.validatePexelsKey(pexelsKey)) {
+      Utils.showMessage('pexels_error', 'Pexels API 키가 너무 짧습니다.', true);
+      hasError = true;
+    }
+    
+    if (hasError) return;
+    
+    if (openaiKey) localStorage.setItem('openai_key', openaiKey);
+    if (pexelsKey) localStorage.setItem('pexels_key', pexelsKey);
+    
+    Utils.showMessage('keys_success', 'API 키가 저장되었습니다.');
+  }
+  
+  async searchArticles() {
+    if (this.isSearching) return;
+    
+    const query = document.getElementById('query').value.trim();
+    if (!query) {
+      alert('검색어를 입력해주세요.');
+      return;
+    }
+    
+    this.isSearching = true;
+    document.getElementById('searchBtn').disabled = true;
+    
+    try {
+      const googleResults = await NewsSearcher.searchGoogleNews(query);
+      const naverResults = await NewsSearcher.searchNaverNews(query);
+      
+      const allResults = [...googleResults, ...naverResults];
+      const uniqueResults = NewsSearcher.removeDuplicates(allResults);
+      
+      uniqueResults.forEach(item => {
+        item.finalScore = NewsSearcher.calculateFinalScore(item, query);
+      });
+      
+      this.searchResults = uniqueResults
+        .sort((a, b) => b.finalScore - a.finalScore)
+        .slice(0, CONFIG.MAX_ARTICLES);
+      
+      this.displaySearchResults();
+      
+    } catch (error) {
+      console.error('Search failed:', error);
+      alert('검색 중 오류가 발생했습니다: ' + error.message);
+    } finally {
+      this.isSearching = false;
+      document.getElementById('searchBtn').disabled = false;
+    }
+  }
+  
+  displaySearchResults() {
+    const container = document.getElementById('articles');
+    const actionsSection = document.getElementById('actions');
+    
+    if (!this.searchResults.length) {
+      container.innerHTML = '<p style="text-align: center; color: #666; padding: 2rem;">관련 기사를 찾을 수 없습니다.</p>';
+      actionsSection.classList.add('hidden');
+      return;
+    }
+    
+    container.innerHTML = this.searchResults.map((item, index) => {
+      const date = new Date(item.pubDate).toISOString().slice(0, 16).replace('T', ' ');
+      const sourceIcon = item.source === 'naver' ? '🔥' : '📰';
+      
+      return `
+        <div class="article-item">
+          <input type="radio" name="article" id="article_${index}" value="${index}">
+          <label for="article_${index}">
+            ${sourceIcon} ${index + 1}. ${Utils.sanitizeText(item.title)} [${date}]
+          </label>
+        </div>
+      `;
+    }).join('');
+    
+    actionsSection.classList.remove('hidden');
+  }
+  
+  async generateContent() {
+    if (this.isGenerating) return;
+    
+    const selectedArticle = document.querySelector('input[name="article"]:checked');
+    if (!selectedArticle) {
+      alert('기사를 선택해주세요.');
+      return;
+    }
+    
+    const articleIndex = parseInt(selectedArticle.value);
+    const article = this.searchResults[articleIndex];
+    const query = document.getElementById('query').value.trim();
+    
+    this.isGenerating = true;
+    this.currentPost = null;
+    
+    document.getElementById('generateBtn').disabled = true;
+    
+    const preview = document.getElementById('preview');
+    preview.innerHTML = '<div style="text-align: center; padding: 2rem; color: #666;">콘텐츠 생성 중입니다...</div>';
+    
+    try {
+      const prompt = ContentGenerator.createSEOPrompt(article.title);
+      const data = await ContentGenerator.generateContent(prompt);
+      
+      if (!data.title || !data.content) {
+        throw new Error('필수 데이터가 생성되지 않았습니다.');
+      }
+      
+      // 대표 이미지 검색
+      const featuredImage = await this.getFeaturedImage(article.title);
+      
+      const cleanContent = data.content.replace(/<img[^>]*>/gi, '');
+      const imgHtml = featuredImage ? 
+        `<img src="${featuredImage}" alt="대표 이미지" style="width: 100%; border-radius: 8px;">` : 
+        '<p style="color: gray; text-align: center; padding: 1rem;">대표 이미지 없음</p>';
+      
+      preview.innerHTML = `
+        <h3>${Utils.sanitizeText(data.title)}</h3>
+        <p><strong>메타 설명:</strong> ${Utils.sanitizeText(data.meta_description)}</p>
+        <p><strong>메인키워드:</strong> ${Utils.sanitizeText(query)}</p>
+        <p><strong>키워드:</strong> ${data.keywords.map(k => Utils.sanitizeText(k)).join(', ')}</p>
+        
+        <div style="margin: 1rem 0; padding: 1rem; background: linear-gradient(135deg, #ff6b6b, #ee5a24); border-radius: 8px; color: white; text-align: center; font-weight: bold;">
+          ${data.title} - SEO 최적화 완료
+        </div>
+        
+        <div>${imgHtml}</div>
+        <div style="margin-top: 1rem;">${cleanContent}</div>
+      `;
+      
+      this.currentPost = {
+        title: data.title,
+        content: cleanContent,
+        tags: data.tags,
+        keywords: data.keywords,
+        meta_description: data.meta_description,
+        mainKeyword: query,
+        imgUrl: featuredImage
+      };
+      
+      document.getElementById('exportOptions').classList.remove('hidden');
+      
+    } catch (error) {
+      console.error('Content generation failed:', error);
+      preview.innerHTML = `<p style="color: red; text-align: center; padding: 2rem;">❌ ${error.message}</p>`;
+    } finally {
+      this.isGenerating = false;
+      document.getElementById('generateBtn').disabled = false;
+    }
+  }
+  
+  async getFeaturedImage(title) {
+    try {
+      const englishTitle = await ContentGenerator.translateToEnglish(title);
+      return await ApiManager.searchPexelsImage(englishTitle);
+    } catch (error) {
+      console.warn('Featured image search failed:', error);
+      return null;
+    }
+  }
+  
+  async copyHtml() {
+    if (!this.currentPost) {
+      alert('먼저 콘텐츠를 생성해주세요.');
+      return;
+    }
+    
+    const htmlContent = this.buildHtmlContent();
+    const success = await ExportManager.copyToClipboard(htmlContent);
+    
+    if (success) {
+      alert('✅ HTML이 클립보드에 복사되었습니다!');
+    } else {
+      alert('❌ 클립보드 복사에 실패했습니다.');
+    }
+  }
+  
+  async copyMarkdown() {
+    if (!this.currentPost) {
+      alert('먼저 콘텐츠를 생성해주세요.');
+      return;
+    }
+    
+    const markdownContent = this.buildMarkdownContent();
+    const success = await ExportManager.copyToClipboard(markdownContent);
+    
+    if (success) {
+      alert('✅ Markdown이 클립보드에 복사되었습니다!');
+    } else {
+      alert('❌ 클립보드 복사에 실패했습니다.');
+    }
+  }
+  
+  downloadHtml() {
+    if (!this.currentPost) {
+      alert('먼저 콘텐츠를 생성해주세요.');
+      return;
+    }
+    
+    try {
+      const htmlContent = this.buildCompleteHtmlDocument();
+      const filename = ExportManager.sanitizeFilename(this.currentPost.title) + '.html';
+      ExportManager.downloadFile(htmlContent, filename, 'text/html');
+    } catch (error) {
+      alert('❌ HTML 파일 다운로드에 실패했습니다.');
+    }
+  }
+  
+  downloadMarkdown() {
+    if (!this.currentPost) {
+      alert('먼저 콘텐츠를 생성해주세요.');
+      return;
+    }
+    
+    try {
+      const markdownContent = this.buildMarkdownContent();
+      const filename = ExportManager.sanitizeFilename(this.currentPost.title) + '.md';
+      ExportManager.downloadFile(markdownContent, filename, 'text/markdown');
+    } catch (error) {
+      alert('❌ Markdown 파일 다운로드에 실패했습니다.');
+    }
+  }
+  
+  async captureImage() {
+    if (!this.currentPost) {
+      alert('먼저 콘텐츠를 생성해주세요.');
+      return;
+    }
+    
+    try {
+      if (!window.html2canvas) {
+        const script = document.createElement('script');
+        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+        document.head.appendChild(script);
+        await new Promise(resolve => script.onload = resolve);
+      }
+      
+      const preview = document.getElementById('preview');
+      const canvas = await html2canvas(preview, {
+        backgroundColor: '#ffffff',
+        scale: 2,
+        useCORS: true
+      });
+      
+      canvas.toBlob(blob => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = ExportManager.sanitizeFilename(this.currentPost.title) + '.png';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      });
+      
+    } catch (err) {
+      console.error('Image capture failed:', err);
+      alert('❌ 이미지 저장에 실패했습니다.');
+    }
+  }
+  
+  buildHtmlContent() {
+    const post = this.currentPost;
+    
+    return `<h1>${Utils.sanitizeText(post.title)}</h1>
+<p><strong>메타 설명:</strong> ${Utils.sanitizeText(post.meta_description)}</p>
+<p><strong>메인키워드:</strong> ${Utils.sanitizeText(post.mainKeyword)}</p>
+<p><strong>키워드:</strong> ${post.keywords.map(k => Utils.sanitizeText(k)).join(', ')}</p>
+${post.imgUrl ? `<img src="${post.imgUrl}" alt="${Utils.sanitizeText(post.title)}" style="width: 100%; height: auto;">` : ''}
+${post.content}`;
+  }
+  
+  buildMarkdownContent() {
+    const post = this.currentPost;
+    
+    return `# ${post.title}
+
+**메타 설명:** ${post.meta_description}
+
+**메인키워드:** ${post.mainKeyword}
+
+**키워드:** ${post.keywords.join(', ')}
+
+${post.imgUrl ? `![${post.title}](${post.imgUrl})\n\n` : ''}${this.htmlToMarkdown(post.content)}`;
+  }
+  
+  htmlToMarkdown(html) {
+    return html
+      .replace(/<h([1-6])>(.*?)<\/h[1-6]>/gi, (match, level, text) => '#'.repeat(parseInt(level)) + ' ' + text + '\n\n')
+      .replace(/<p>(.*?)<\/p>/gi, '$1\n\n')
+      .replace(/<br\s*\/?>/gi, '\n')
+      .replace(/<strong>(.*?)<\/strong>/gi, '**$1**')
+      .replace(/<b>(.*?)<\/b>/gi, '**$1**')
+      .replace(/<em>(.*?)<\/em>/gi, '*$1*')
+      .replace(/<i>(.*?)<\/i>/gi, '*$1*')
+      .replace(/<[^>]*>/g, '')
+      .replace(/\n\s*\n\s*\n/g, '\n\n')
+      .trim();
+  }
+  
+  buildCompleteHtmlDocument() {
+    const post = this.currentPost;
+    
+    return `<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="${Utils.sanitizeText(post.meta_description)}">
+  <meta name="keywords" content="${post.keywords.map(k => Utils.sanitizeText(k)).join(', ')}">
+  <title>${Utils.sanitizeText(post.title)}</title>
+  <style>
+    body { 
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+      max-width: 800px; 
+      margin: 0 auto; 
+      padding: 2rem; 
+      line-height: 1.6; 
+      color: #333;
+    }
+    h1 { 
+      color: #2d3748; 
+      border-bottom: 3px solid #e53e3e; 
+      padding-bottom: 0.5rem; 
+      margin-bottom: 2rem;
+    }
+    h2, h3 {
+      color: #4a5568;
+      margin-top: 2rem;
+      margin-bottom: 1rem;
+    }
+    img { 
+      width: 100%; 
+      height: auto; 
+      border-radius: 8px; 
+      margin: 1rem 0; 
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    .meta-info { 
+      background: #f7fafc; 
+      padding: 1rem; 
+      border-radius: 8px; 
+      margin: 1rem 0; 
+      border-left: 4px solid #e53e3e;
+    }
+  </style>
+</head>
+<body>
+  <h1>${Utils.sanitizeText(post.title)}</h1>
+  <div class="meta-info">
+    <p><strong>메타 설명:</strong> ${Utils.sanitizeText(post.meta_description)}</p>
+    <p><strong>메인키워드:</strong> ${Utils.sanitizeText(post.mainKeyword)}</p>
+    <p><strong>키워드:</strong> ${post.keywords.map(k => Utils.sanitizeText(k)).join(', ')}</p>
+  </div>
+  ${post.imgUrl ? `<img src="${post.imgUrl}" alt="${Utils.sanitizeText(post.title)}">` : ''}
+  ${post.content}
+</body>
+</html>`;
+  }
+}
+
+// DOM이 로드되면 앱 초기화
+document.addEventListener('DOMContentLoaded', function() {
+  try {
+    new App();
+  } catch (error) {
+    console.error('App initialization failed:', error);
+    alert('애플리케이션 초기화에 실패했습니다. 페이지를 새로고침해주세요.');
+  }
+});
+</script>
+</body>
+</html>
